@@ -221,7 +221,7 @@ NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_API_KEY=<your_api_key>
 create hot RabbitMQ instances on `initMessageBus`, under the hood. Thus, tests you run will be connected to
 a clean RabbitMQ instance.
 
-`node-message-bus` create a free plan instances, which should be enough for various testing purposes:
+`node-message-bus` create a [free plan](https://www.cloudamqp.com/plans.html) instances, which should be enough for various testing purposes:
 
 <img width="806" alt="image" src="https://user-images.githubusercontent.com/4989256/161066219-def235f4-2434-4400-abcf-91bbe9a48493.png">
 
