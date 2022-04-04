@@ -76,51 +76,51 @@ if you, for instance, publish messages before calling this functions, but publis
 hang and wait until initMessageBus is called.
 
 ```typescript
-import { initMessageBus } from "node-message-bus";
+import { initMessageBus } from 'node-message-bus';
 
 // All configuration items are OPTIONAL. For just publishing messages to the default exchange, use
 // await initMessageBus({}).
 // If any of these collide with already defined queues, and properties mismatch, {initMessageBus}
 // will throw an error. Prefer defining new queues when migrating.
 await initMessageBus({
-  // Logging function. {logType} is one of these: 'log', 'warn', 'error'
+  // Logging function. {logType} is one of these: 'log', 'info', 'warn', 'error'
   logger: (logType, message) => console[logType](message),
 
   // Exchanges to configure before start.
   exchanges: [
     {
-      name: "default",
-      type: "topic",
+      name: 'default',
+      type: 'topic',
     },
   ],
 
   // Queues to configure before start.
   queues: [
     {
-      name: "test-queue-1",
+      name: 'test-queue-1',
     },
     {
-      name: "test-queue-with-dead-letter-and-ttl",
+      name: 'test-queue-with-dead-letter-and-ttl',
       options: {
-        deadLetterExchange: "",
-        deadLetterRoutingKey: "something",
+        deadLetterExchange: '',
+        deadLetterRoutingKey: 'something',
         messageTtl: 2000,
       },
     },
     {
-      name: "test-queue-dead-letter-handler",
+      name: 'test-queue-dead-letter-handler',
     },
   ],
 
   // Bindings to configure before start.
   bindings: [
     {
-      toQueue: "test-queue-1",
-      routingKey: "routing-key",
+      toQueue: 'test-queue-1',
+      routingKey: 'routing-key',
     },
     {
-      toQueue: "test-queue-dead-letter-handler",
-      routingKey: "something",
+      toQueue: 'test-queue-dead-letter-handler',
+      routingKey: 'something',
     },
   ],
 });
@@ -130,7 +130,7 @@ If you need to define any queues in runtime (which should only be used for testi
 which has the same API as `initMessageBus`. Note that there's no way to delete/reset created queues, which is by design.
 
 ```typescript
-import { configureMessageBus } from "node-message-bus";
+import { configureMessageBus } from 'node-message-bus';
 
 await configureMessageBus({
   /* Same arguments as in {initMessageBus}. */
@@ -144,8 +144,8 @@ We demonstrate the usage of this function along with [node-graceful-shutdown](ht
 NPM module.
 
 ```javascript
-import { onShutdown } from "node-graceful-shutdown";
-import { closeMessageBus } from "node-message-bus";
+import { onShutdown } from 'node-graceful-shutdown';
+import { closeMessageBus } from 'node-message-bus';
 
 // {closeMessageBus} is an async function that will be invoked by node-graceful-shutdown.
 onShutdown(closeMessageBus);
@@ -156,12 +156,12 @@ onShutdown(closeMessageBus);
 Don't forget to call `initMessageBus` for microservices which publishing only.
 
 ```typescript
-import { publishMessage } from "node-message-bus";
+import { publishMessage } from 'node-message-bus';
 
 await publishMessage({
-  key: "key-1",
+  key: 'key-1',
   data: {
-    info: "This will be serialized to JSON,",
+    info: 'This will be serialized to JSON,',
     or: "you can pass a primitive value to 'data'.",
   },
 });
@@ -172,10 +172,10 @@ await publishMessage({
 Consumers are defined once, globally, per-microservice. There's no such thing as a "temporary" consumer.
 
 ```typescript
-import { consumeMessages } from "node-message-bus";
+import { consumeMessages } from 'node-message-bus';
 
 await consumeMessages({
-  queueName: "test-queue-1",
+  queueName: 'test-queue-1',
   handler: async (data) => {
     // From the previous example, data is an object { info: "...", or: "..." }.
     // Any errors thrown in this code will be logged

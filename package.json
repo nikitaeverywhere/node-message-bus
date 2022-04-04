@@ -1,0 +1,46 @@
+{
+  "name": "node-message-bus",
+  "version": "1.0.0",
+  "description": "Minimalistic and complete AMQP message bus implementation",
+  "main": "index.js",
+  "scripts": {
+    "test": "exit 0",
+    "build": "tsc -p .",
+    "start": "npm run build -- -w"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ZitRos/node-message-bus.git"
+  },
+  "keywords": [
+    "node",
+    "message",
+    "bus",
+    "amqp",
+    "rabbitmq",
+    "rabbit",
+    "queue"
+  ],
+  "author": {
+    "name": "Nikita Savchenko",
+    "email": "me@nikita.tk",
+    "url": "https://nikita.tk"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ZitRos/node-message-bus/issues"
+  },
+  "homepage": "https://github.com/ZitRos/node-message-bus#readme",
+  "devDependencies": {
+    "@types/amqp-connection-manager": "^2.0.12",
+    "prettier": "^2.6.2",
+    "prettier-plugin-organize-imports": "^2.3.4",
+    "typescript": "^4.6.3",
+    "typescript-transform-paths": "^3.3.1"
+  },
+  "dependencies": {
+    "@types/amqplib": "^0.8.2",
+    "amqp-connection-manager": "^4.1.1",
+    "amqplib": "^0.8.0"
+  }
+}
