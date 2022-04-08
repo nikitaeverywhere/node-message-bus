@@ -8,14 +8,16 @@ const EXP_BACKOFF_HEADER_NAME = 'x-backoff-sec';
 const EXP_BACKOFF_MULTIPLIER = 4;
 const MAX_EXP_BACKOFF = 1000 * 1024;
 
-interface HandlerExtraParams extends MessageProperties, ConsumeMessageFields {}
+interface HandlerExtraParams extends MessageProperties, ConsumeMessageFields {
+  data: any;
+}
 
-export const consumeMessages = async <BodyType = any>({
+export const consumeMessages = async <DataType = any>({
   queueName,
   handler,
 }: {
   queueName: string;
-  handler: (data: BodyType, extra: HandlerExtraParams) => any;
+  handler: (arg: HandlerExtraParams & { data: DataType }) => any;
 }) => {
   const channel = await getChannel();
   const queue = getMessageBusConfig().queues.find((q) => q.name === queueName);
@@ -52,9 +54,10 @@ export const consumeMessages = async <BodyType = any>({
         log(
           `Consuming message from queue=${queueName}, routingKey=${message.fields.routingKey}`
         );
-        await handler(data as any, {
+        await handler({
           ...message.properties,
           ...message.fields,
+          data: data as unknown as DataType,
         });
         channel.ack(message);
       } catch (e: any) {

@@ -77,12 +77,12 @@ describe('node-message-bus', () => {
       const consumePromise = new Promise((r) =>
         consumeMessages({
           queueName: 'test-queue-1',
-          handler: r,
+          handler: ({ data }) => r(data),
         })
       );
       await publishMessage({
         routingKey: 'automation.run',
-        body: {
+        data: {
           pipelineId: 'a',
           stepId: 'start',
         },
@@ -99,12 +99,12 @@ describe('node-message-bus', () => {
       const consumePromise = new Promise((r) =>
         consumeMessages({
           queueName: 'test-queue-1',
-          handler: r,
+          handler: ({ data }) => r(data),
         })
       );
       await publishMessage({
         routingKey: 'automation.run',
-        body: {
+        data: {
           pipelineId: 'b',
           stepId: 'start',
         },
@@ -122,12 +122,12 @@ describe('node-message-bus', () => {
       const consumePromise = new Promise((r) =>
         consumeMessages({
           queueName: 'test-queue-any',
-          handler: r,
+          handler: ({ data }) => r(data),
         })
       );
       await publishMessage({
         routingKey: 'automation.new',
-        body: {
+        data: {
           type: 'step2',
           args: {
             propertyId: 'x',
@@ -150,12 +150,12 @@ describe('node-message-bus', () => {
       const consumePromise = new Promise((r) =>
         consumeMessages({
           queueName: 'test-queue-1',
-          handler: r,
+          handler: ({ data }) => r(data),
         })
       );
       await publishMessageToQueue({
         queueName: 'test-queue-1',
-        body: { pipelineId: 'b', stepId: 'start' },
+        data: { pipelineId: 'b', stepId: 'start' },
       });
       const dataReceived = await consumePromise;
 
@@ -171,7 +171,7 @@ describe('node-message-bus', () => {
         [1, 2, 3].map((i) =>
           publishMessage({
             routingKey: 'automation.run',
-            body: {
+            data: {
               pipelineId: i.toString(),
               stepId: 'start',
             },
@@ -180,7 +180,7 @@ describe('node-message-bus', () => {
       );
       consumeMessages({
         queueName: 'test-queue-1',
-        handler: (data) => {
+        handler: ({ data }) => {
           consumedMessages.push(data);
         },
       });
@@ -214,13 +214,13 @@ describe('node-message-bus', () => {
       });
       await consumeMessages({
         queueName: queueHandler,
-        handler: (data) => {
+        handler: ({ data }) => {
           consumedMessages.push(data);
         },
       });
       await publishMessageToQueue({
         queueName,
-        body: { pipelineId: 'a', stepId: 'start' },
+        data: { pipelineId: 'a', stepId: 'start' },
       });
       await purgeQueue({
         queueName,
@@ -238,7 +238,7 @@ describe('node-message-bus', () => {
       let handledData: any;
       consumeMessages({
         queueName: 'test-queue-1',
-        handler: async (data, { headers }) => {
+        handler: async ({ data, headers }) => {
           console.log(
             `Handling new message: ${data}, headers: ${JSON.stringify(headers)}`
           );
@@ -252,7 +252,7 @@ describe('node-message-bus', () => {
       });
       await publishMessage({
         routingKey: 'automation.run',
-        body: {
+        data: {
           pipelineId: 'a',
           stepId: 'start',
         },
@@ -299,7 +299,7 @@ describe('node-message-bus', () => {
     const consumedMessages: any[] = [];
     await consumeMessages({
       queueName: 'dynamic-queue',
-      handler: (data) => {
+      handler: ({ data }) => {
         consumedMessages.push(data);
       },
     });
@@ -307,7 +307,7 @@ describe('node-message-bus', () => {
     const random = Math.random().toString();
     await publishMessage({
       routingKey: 'notification.user',
-      body: {
+      data: {
         recipientUserId: random,
         notification: {
           id: 'automationPipelineFailed',

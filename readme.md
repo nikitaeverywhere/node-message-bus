@@ -85,7 +85,7 @@ await initMessageBus();
 // Publishes to a default exchange specified via env vars.
 await publishMessage({
   routingKey: 'myapp.test',
-  body: 'Hello',
+  data: 'Hello',
 });
 ```
 
@@ -108,7 +108,7 @@ await initMessageBus({
 // Processes all messages from default (topic) exchange, where routing key starts with "myapp.".
 await consumeMessages({
   queueName: 'test-queue-1',
-  handler: async (data, { routingKey }) => {
+  handler: async ({ data, routingKey }) => {
     console.log(`Consumed message with routingKey=${routingKey}:`, data);
   },
 });
@@ -208,7 +208,7 @@ import { publishMessage } from 'node-message-bus';
 
 await publishMessage({
   routingKey: 'key-1',
-  body: {
+  data: {
     info: 'This will be serialized to JSON,',
     or: "you can pass a primitive value to 'data'.",
   },
@@ -222,7 +222,7 @@ import { publishMessageToQueue } from 'node-message-bus';
 
 await publishMessageToQueue({
   routingKey: 'key-1',
-  body: 'Made in 🇺🇦',
+  data: 'Made in 🇺🇦',
 });
 ```
 
@@ -265,9 +265,9 @@ import { consumeMessages } from 'node-message-bus';
 
 await consumeMessages({
   queueName: 'test-queue-1',
-  handler: async (data) => {
+  handler: async ({ data, routingKey }) => {
     // From the previous example, data is an object { info: "...", or: "..." }.
-    // Any errors thrown in this code will be logged
+    // Any errors thrown in this code will be logged and will nack the message.
   },
 });
 ```

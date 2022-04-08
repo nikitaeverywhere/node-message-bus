@@ -5,14 +5,14 @@ import { DEFAULT_CONFIG, DEFAULT_EXCHANGE_NAME } from './Const';
 
 interface Message {
   routingKey: string;
-  body: any;
+  data: any;
   exchangeName?: string;
   options?: Options.Publish;
 }
 
 interface DirectMessage {
   queueName: string;
-  body: any;
+  data: any;
   options?: Options.Publish;
 }
 
@@ -29,7 +29,11 @@ const pushToLastMessages = (m: any) => {
   }
 };
 
-export const publishMessage = async (message: Message) => {
+export const publishMessage = async <
+  DataType extends { data: any; routingKey: string } = Message
+>(
+  message: Message & DataType
+) => {
   const channel = await getChannel();
   const exchangeName =
     message.exchangeName ||
@@ -41,13 +45,13 @@ export const publishMessage = async (message: Message) => {
     await channel.publish(
       exchangeName,
       message.routingKey,
-      message.body, // channel.publish stringifies JSON by default.
+      message.data, // channel.publish stringifies JSON by default.
       message.options
     );
     pushToLastMessages(message);
   } catch (e) {
     error(
-      `Unable to publish data ${message.body} to exchange "${exchangeName}" with routing routingKey "${message.routingKey}": ${e}`
+      `Unable to publish data ${message.data} to exchange "${exchangeName}" with routing routingKey "${message.routingKey}": ${e}`
     );
     throw new Error(
       `Message bus encountered an error when publishing to exchange "${exchangeName}" with routingKey "${message.routingKey}".`
@@ -61,7 +65,7 @@ export const getLastPublishedMessages = () => lastPublishedMessages.slice();
 export const resetLastPublishedMessages = () => (lastPublishedMessages = []);
 
 export const publishMessageToQueue = async ({
-  body,
+  data,
   queueName,
   options,
 }: DirectMessage) => {
@@ -69,10 +73,10 @@ export const publishMessageToQueue = async ({
 
   try {
     log(`Publishing message to queue=${queueName}`);
-    await channel.sendToQueue(queueName, body, options);
+    await channel.sendToQueue(queueName, data, options);
   } catch (e) {
     error(
-      `Unable to publish data ${body} to queue "${queueName}" with options "${JSON.stringify(
+      `Unable to publish data ${data} to queue "${queueName}" with options "${JSON.stringify(
         options || {}
       )}": ${e}`
     );
