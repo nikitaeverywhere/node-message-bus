@@ -1,13 +1,17 @@
-let loggerFunction = (
+let defaultLoggerFunction = (
   logType: 'log' | 'warn' | 'error' | 'info',
   message: string
-) => console[logType](message);
+) =>
+  console[logType](
+    `${new Date().toLocaleString()} node-message-bus: ${message}`
+  );
 
-export const setLoggerFunction = (f: typeof loggerFunction) => {
-  loggerFunction = f;
+export const setLoggerFunction = (f: typeof defaultLoggerFunction) => {
+  defaultLoggerFunction = f;
 };
 
-export const log = (message: string) => loggerFunction('log', message);
-export const info = (message: string) => loggerFunction('info', message);
-export const warn = (message: string) => loggerFunction('warn', message);
-export const error = (message: string) => loggerFunction('error', message);
+export const log = (message: string) => defaultLoggerFunction('log', message);
+export const info = (message: string) => defaultLoggerFunction('info', message);
+export const warn = (message: string) => defaultLoggerFunction('warn', message);
+export const error = (message: string) =>
+  defaultLoggerFunction('error', message);

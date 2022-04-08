@@ -65,8 +65,8 @@ export const configureMessageBus = async (
   for (const binding of (config.bindings || []).concat(
     DEFAULT_CONFIG.bindings || []
   )) {
+    const fromExchange = binding.fromExchange || DEFAULT_EXCHANGE_NAME;
     try {
-      const fromExchange = binding.fromExchange || DEFAULT_EXCHANGE_NAME;
       log(
         `Asserting the queue binding "${fromExchange}" -> "${binding.toQueue}" by key "${binding.routingKey}".`
       );
@@ -77,7 +77,7 @@ export const configureMessageBus = async (
       );
       appliedConfig.bindings.push(binding);
     } catch (e) {
-      const message = `Failed to bind queue "${binding.toQueue}" to exchange ${binding.fromExchange} via the routing key "${binding.routingKey}": ${e}`;
+      const message = `Failed to bind queue "${binding.toQueue}" to exchange "${fromExchange}" via the routing key "${binding.routingKey}": ${e}`;
       error(message);
       throw new Error(message);
     }

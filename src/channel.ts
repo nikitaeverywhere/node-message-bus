@@ -1,7 +1,7 @@
 import { ConfirmChannel } from 'amqplib';
-import { log } from 'Utils';
+import { error, log } from 'Utils';
 import { configureMessageBus } from './config';
-import { closeMessageBusConnection, connection } from './connection';
+import { closeMessageBusConnection, getConnection } from './connection';
 import { MessageBusConfig } from './Const';
 
 let initPromiseResolve = (value: MessageBusConfig) => {
@@ -22,32 +22,42 @@ export const initMessageBus = async (config: MessageBusConfig) => {
   await _postInitPromise;
 };
 
-const channel = connection.createChannel({
-  json: true,
-  setup: async (channel: ConfirmChannel) => {
-    log(
-      `Waiting for RabbitMQ to be initialized by invoking initMessageBus() from 'pkg-message-bus'.`
-    );
-    const config = await _initPromise;
+const channelPromise = getConnection()
+  .then((connection) => {
+    log(`Initializing connection...`);
+    return connection.createChannel({
+      json: true,
+      setup: async (channel: ConfirmChannel) => {
+        log(
+          `Waiting for RabbitMQ to be initialized by invoking initMessageBus() from 'node-message-bus'.`
+        );
+        const config = await _initPromise;
 
-    await configureMessageBus(config, channel);
+        await configureMessageBus(config, channel);
 
-    log(
-      `RabbitMQ initialization is complete with the following config: ${JSON.stringify(
-        config
-      )}`
-    );
+        log(
+          `RabbitMQ initialization is complete with the following config: ${JSON.stringify(
+            config
+          )}`
+        );
 
-    postInitPromiseResolve(true);
-  },
-});
+        postInitPromiseResolve(true);
+      },
+    });
+  })
+  .catch((e) => {
+    error(e.stack || e);
+    throw e;
+  });
 
 export const getChannel = async () => {
+  const channel = await channelPromise;
   await channel.waitForConnect();
   return channel;
 };
 
 const closeMessageBusChannel = async () => {
+  const channel = await channelPromise;
   log(`Cancelling all listening queues...`);
   await channel.cancelAll();
   log(`Closing message bus default channel. Cooling down for 3 seconds...`);

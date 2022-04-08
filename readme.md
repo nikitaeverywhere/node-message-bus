@@ -11,6 +11,7 @@ for RabbitMQ, bringing the most critical features to build with message bus patt
 
 ## Features
 
+- Declarative interface, simple in use.
 - Built-in, no-external-dependencies support of exponential backoff.
 - Built-in tools for testing with dynamic instances provided by [CloudAMQP](https://www.cloudamqp.com/).
 - Simple yet flexible interfaces.
@@ -20,15 +21,18 @@ for RabbitMQ, bringing the most critical features to build with message bus patt
 
 1. [Installation](#installation)
 2. [Configuration](#configuration)
-3. [Usage](#usage)
+3. [Examples](#examples)
+   1. [Publisher](#publisher)
+   2. [Consumer](#consumer)
+4. [Usage](#usage)
    1. [Initialize](#initialize)
    2. [Disconnect](#disconnect)
    3. [Publish messages](#publish-messages)
    4. [Consume messages](#consume-messages)
-4. [Features](#features)
+5. [Features](#features)
    1. [Built-in exponential backoff](built-in-exponential-backoff)
    2. [Spot RabbitMQ instances for testing](#spot-rabbitmq-instances-for-testing)
-5. [License](#license)
+6. [License](#license)
 
 ## Installation
 
@@ -53,8 +57,8 @@ NODE_MESSAGE_BUS_CONNECTION_URL=http://admin:admin@rabbitmq
 # the default exchange.
 # If you're starting a new infrastructure, prefer specifying the "default" exchange name
 # with the "topic" type.
-NODE_MESSAGE_BUS_DEFAULT_EXCHANGE_NAME=
-NODE_MESSAGE_BUS_DEFAULT_EXCHANGE_TYPE=direct
+NODE_MESSAGE_BUS_DEFAULT_EXCHANGE_NAME=amq.topic
+NODE_MESSAGE_BUS_DEFAULT_EXCHANGE_TYPE=topic
 
 # Optional. When set to "test", the library switches to a "testing mode" and will try to
 # connect to your CloudAMQP account, if {NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_API_KEY} is present.
@@ -64,6 +68,49 @@ NODE_ENV=test
 # RabbitMQ instances. Read below to understand how dynamic instances are created.
 NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_API_KEY=faf83b09-352f-add3-c2e3-c83212a32344
 NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_INSTANCE_LIFETIME=86400000
+```
+
+## Examples
+
+Below you will find simple copy-paste examples of publisher and consumer.
+
+### Publisher
+
+```typescript
+import { initMessageBus, publishMessage } from 'node-message-bus';
+
+// Inits message bus with all defaults.
+await initMessageBus({});
+
+// Publishes to a default exchange specified via env vars.
+await publishMessage({
+  routingKey: 'myapp.test',
+  body: 'Hello',
+});
+```
+
+### Consumer
+
+```typescript
+import { initMessageBus, consumeMessages } from 'node-message-bus';
+
+// Inits message bus with a new queue, which takes messages from the default exchange.
+await initMessageBus({
+  bindings: [
+    {
+      toQueue: 'test-queue-1',
+      routingKey: 'myapp.#', // For topic exchanges, means "All messages starting from 'myapp.'."
+    },
+  ],
+});
+
+// Processes all messages from default (topic) exchange, where routing key starts with "myapp.".
+await consumeMessages({
+  queueName: 'test-queue-1',
+  handler: async (data, { routingKey }) => {
+    console.log(`Consumed message with routingKey=${routingKey}:`, data);
+  },
+});
 ```
 
 ## Usage
@@ -89,7 +136,7 @@ await initMessageBus({
   // Exchanges to configure before start.
   exchanges: [
     {
-      name: 'default',
+      name: 'amq.topic',
       type: 'topic',
     },
   ],
@@ -153,14 +200,14 @@ onShutdown(closeMessageBus);
 
 ### Publish messages
 
-Don't forget to call `initMessageBus` for microservices which publishing only.
+Don't forget to call `initMessageBus` for microservices which are publishing only.
 
 ```typescript
 import { publishMessage } from 'node-message-bus';
 
 await publishMessage({
-  key: 'key-1',
-  data: {
+  routingKey: 'key-1',
+  body: {
     info: 'This will be serialized to JSON,',
     or: "you can pass a primitive value to 'data'.",
   },

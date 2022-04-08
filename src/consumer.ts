@@ -8,15 +8,14 @@ const EXP_BACKOFF_HEADER_NAME = 'x-backoff-sec';
 const EXP_BACKOFF_MULTIPLIER = 4;
 const MAX_EXP_BACKOFF = 1000 * 1024;
 
-export const consumeMessages = async ({
+interface HandlerExtraParams extends MessageProperties, ConsumeMessageFields {}
+
+export const consumeMessages = async <BodyType = any>({
   queueName,
   handler,
 }: {
   queueName: string;
-  handler: (
-    data: any,
-    extra: { properties: MessageProperties; fields: ConsumeMessageFields }
-  ) => any;
+  handler: (data: BodyType, extra: HandlerExtraParams) => any;
 }) => {
   const channel = await getChannel();
   const queue = getMessageBusConfig().queues.find((q) => q.name === queueName);
@@ -50,10 +49,12 @@ export const consumeMessages = async ({
       }
 
       try {
-        log(`Message bus: consuming message from queue=${queueName}`);
+        log(
+          `Consuming message from queue=${queueName}, routingKey=${message.fields.routingKey}`
+        );
         await handler(data as any, {
-          properties: message.properties,
-          fields: message.fields,
+          ...message.properties,
+          ...message.fields,
         });
         channel.ack(message);
       } catch (e: any) {
@@ -70,14 +71,14 @@ export const consumeMessages = async ({
         )}s+${message.fields.routingKey}`;
 
         error(
-          `Message bus: error when consuming message from queue "${queueName}". The message will be requeued to "${backoffQueueName}". Message: ${message.content.toString()}. ${
+          `Error when consuming message from queue "${queueName}". The message will be requeued to "${backoffQueueName}". Message: ${message.content.toString()}. ${
             e.stack
           }`
         );
 
         try {
           log(
-            `Message bus: asserting backoff queue for routing key "${message.fields.routingKey}"`
+            `Asserting backoff queue for routing key "${message.fields.routingKey}"`
           );
           await channel.assertQueue(backoffQueueName, {
             ...queue.options,
@@ -118,11 +119,10 @@ export const consumeMessages = async ({
       consumerTag,
     }
   );
-  log(`Message bus: registered a new consumer for queue=${queueName}`);
+  log(`Registered a new consumer for queue=${queueName}`);
 };
 
-// For testing purposes.
-export const messageBusClearAllConsumers = async () => {
+export const messageBusStopAllConsumers = async () => {
   const channel = await getChannel();
   await channel.cancelAll();
 };

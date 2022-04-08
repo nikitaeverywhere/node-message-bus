@@ -1,7 +1,20 @@
 import { Options } from 'amqplib';
 import { error, log } from 'Utils';
 import { getChannel } from './channel';
-import { DEFAULT_CONFIG } from './Const';
+import { DEFAULT_CONFIG, DEFAULT_EXCHANGE_NAME } from './Const';
+
+interface Message {
+  routingKey: string;
+  body: any;
+  exchangeName?: string;
+  options?: Options.Publish;
+}
+
+interface DirectMessage {
+  queueName: string;
+  body: any;
+  options?: Options.Publish;
+}
 
 const LAST_PUBLISHED_MESSAGES_BUFFER_SIZE = 50;
 
@@ -16,20 +29,28 @@ const pushToLastMessages = (m: any) => {
   }
 };
 
-export const publishMessage = async (x: any) => {
+export const publishMessage = async (message: Message) => {
   const channel = await getChannel();
-  const exchangeName = DEFAULT_CONFIG.exchanges?.[0].name || 'default';
+  const exchangeName =
+    message.exchangeName ||
+    DEFAULT_CONFIG.exchanges?.[0].name ||
+    DEFAULT_EXCHANGE_NAME;
 
   try {
-    log(`Message bus: publishing message with key=${x.key}`);
-    await channel.publish(exchangeName, x.key, x.body); // It stringifies JSON.
-    pushToLastMessages(x);
+    log(`Publishing message with routingKey=${message.routingKey}`);
+    await channel.publish(
+      exchangeName,
+      message.routingKey,
+      message.body, // channel.publish stringifies JSON by default.
+      message.options
+    );
+    pushToLastMessages(message);
   } catch (e) {
     error(
-      `Message bus: unable to publish data ${x.body} to exchange "${exchangeName}" with routing key "${x.key}": ${e}`
+      `Unable to publish data ${message.body} to exchange "${exchangeName}" with routing routingKey "${message.routingKey}": ${e}`
     );
     throw new Error(
-      `Message bus encountered an error when publishing to exchange "${exchangeName}" with key "${x.key}".`
+      `Message bus encountered an error when publishing to exchange "${exchangeName}" with routingKey "${message.routingKey}".`
     );
   }
 };
@@ -43,19 +64,15 @@ export const publishMessageToQueue = async ({
   body,
   queueName,
   options,
-}: {
-  body: any;
-  queueName: string;
-  options?: Options.Publish;
-}) => {
+}: DirectMessage) => {
   const channel = await getChannel();
 
   try {
-    log(`Message bus: publishing message to queue=${queueName}`);
+    log(`Publishing message to queue=${queueName}`);
     await channel.sendToQueue(queueName, body, options);
   } catch (e) {
     error(
-      `Message bus: unable to publish data ${body} to queue "${queueName}" with options "${JSON.stringify(
+      `Unable to publish data ${body} to queue "${queueName}" with options "${JSON.stringify(
         options || {}
       )}": ${e}`
     );

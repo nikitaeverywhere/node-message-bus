@@ -1,0 +1,6 @@
+extension:
+  - ts
+require:
+  - ts-node/register
+timeout: 20000
+exit: true

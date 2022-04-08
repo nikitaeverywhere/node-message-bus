@@ -1,6 +1,7 @@
 import { Options } from 'amqplib';
 
 type ExchangeType = 'direct' | 'topic' | 'fanout' | 'headers';
+export const EXCHANGE_TYPES = ['direct', 'topic', 'fanout', 'headers'];
 
 export interface MessageBusConfig {
   exchanges?: {
@@ -22,19 +23,14 @@ export interface MessageBusConfig {
 }
 
 export const DEFAULT_EXCHANGE_NAME =
-  process.env.NODE_MESSAGE_BUS_DEFAULT_EXCHANGE_NAME || '';
-export const DEFAULT_EXCHANGE_TYPE = [
-  'direct',
-  'topic',
-  'fanout',
-  'headers',
-].find(
-  (t) => t === (process.env.NODE_MESSAGE_BUS_DEFAULT_EXCHANGE_TYPE || 'direct')
+  process.env.NODE_MESSAGE_BUS_DEFAULT_EXCHANGE_NAME || 'amq.topic';
+export const DEFAULT_EXCHANGE_TYPE = EXCHANGE_TYPES.find(
+  (t) => t === (process.env.NODE_MESSAGE_BUS_DEFAULT_EXCHANGE_TYPE || 'topic')
 ) as ExchangeType | undefined;
 
 if (!DEFAULT_EXCHANGE_TYPE) {
   throw new Error(
-    `node-message-bus: wrong default exchange type "${process.env.NODE_MESSAGE_BUS_DEFAULT_EXCHANGE_TYPE}"`
+    `Wrong default exchange type "${process.env.NODE_MESSAGE_BUS_DEFAULT_EXCHANGE_TYPE}"`
   );
 }
 
@@ -44,5 +40,5 @@ export const DEFAULT_CONFIG: MessageBusConfig = {
       name: DEFAULT_EXCHANGE_NAME,
       type: DEFAULT_EXCHANGE_TYPE,
     },
-  ],
+  ].filter(({ name }) => name !== ''), // Filter out the default exchange config as it's non-editable.
 };

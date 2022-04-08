@@ -4,9 +4,10 @@
   "description": "Minimalistic and complete AMQP message bus implementation",
   "main": "index.js",
   "scripts": {
-    "test": "exit 0",
-    "build": "tsc -p .",
-    "start": "npm run build -- -w"
+    "test": "npm run test:cloudamqp",
+    "test:cloudamqp": "env-cmd -f tests/common.env -f tests/specs/cloudamqp.env --use-shell \"export NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_API_KEY=$CLOUDAMQP_API_KEY && mocha --config=tests/mocha.yaml tests/**/*cloudamqp.test.ts\"",
+    "build": "tsc && tsc-alias",
+    "start": "npm run build -- -w & tsc-alias -w"
   },
   "repository": {
     "type": "git",
@@ -33,14 +34,22 @@
   "homepage": "https://github.com/ZitRos/node-message-bus#readme",
   "devDependencies": {
     "@types/amqp-connection-manager": "^2.0.12",
+    "@types/chai": "^4.3.0",
+    "@types/mocha": "^9.1.0",
+    "@types/node-fetch": "^2.6.1",
+    "chai": "^4.3.6",
+    "env-cmd": "^10.1.0",
+    "mocha": "^9.2.2",
     "prettier": "^2.6.2",
     "prettier-plugin-organize-imports": "^2.3.4",
-    "typescript": "^4.6.3",
-    "typescript-transform-paths": "^3.3.1"
+    "ts-node": "^10.7.0",
+    "tsc-alias": "^1.6.6",
+    "typescript": "^4.6.3"
   },
   "dependencies": {
     "@types/amqplib": "^0.8.2",
     "amqp-connection-manager": "^4.1.1",
-    "amqplib": "^0.8.0"
+    "amqplib": "^0.8.0",
+    "node-fetch": "^2.6.7"
   }
 }
