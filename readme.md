@@ -1,9 +1,7 @@
 # node-message-bus
 
 [![npm](https://img.shields.io/npm/v/node-message-bus.svg)](https://www.npmjs.com/package/node-message-bus)
-[![Dependencies](https://img.shields.io/badge/dependencies-none-brightgreen.svg)](http://npm.anvaka.com/#/view/2d/node-message-bus)
-[![npm](https://img.shields.io/npm/dm/node-message-bus.svg)](https://www.npmjs.com/package/node-message-bus)
-[![License](https://img.shields.io/github/license/zitros/node-message-bus.svg)](LICENSE)
+[![License](https://img.shields.io/npm/l/node-message-bus)](LICENSE)
 [![GitHub](https://img.shields.io/github/stars/zitros/node-message-bus.svg?style=social&label=Star)](https://github.com/ZitRos/node-message-bus)
 
 Ready-to-go RabbitMQ support for your NodeJS microservices. A convenient wrapper around [ampqlib](https://www.npmjs.com/package/amqplib)
