@@ -79,8 +79,8 @@ Below you will find simple copy-paste examples of publisher and consumer.
 ```typescript
 import { initMessageBus, publishMessage } from 'node-message-bus';
 
-// Inits message bus with all defaults.
-await initMessageBus({});
+// Inits message bus with all defaults. Set NODE_MESSAGE_BUS_CONNECTION_URL env var for connection string.
+await initMessageBus();
 
 // Publishes to a default exchange specified via env vars.
 await publishMessage({
@@ -95,6 +95,7 @@ await publishMessage({
 import { initMessageBus, consumeMessages } from 'node-message-bus';
 
 // Inits message bus with a new queue, which takes messages from the default exchange.
+// Set NODE_MESSAGE_BUS_CONNECTION_URL env var for connection string.
 await initMessageBus({
   bindings: [
     {
@@ -214,6 +215,47 @@ await publishMessage({
 });
 ```
 
+You can also publish messages to a single queue (which is not recommended under normal circumstances):
+
+```typescript
+import { publishMessageToQueue } from 'node-message-bus';
+
+await publishMessageToQueue({
+  routingKey: 'key-1',
+  body: 'Made in 🇺🇦',
+});
+```
+
+In testing scenarios, you can also access a few extra functions that will allow for easier assertions:
+
+```typescript
+import { startApp, stopApp, myAwesomeFunc } from 'build';
+import {
+  getLastPublishedMessages,
+  resetLastPublishedMessages,
+} from 'node-message-bus';
+
+before(async () => {
+  await startApp();
+});
+
+after(async () => {
+  await stopApp();
+});
+
+describe('Dummy test', () => {
+  beforeEach(() => {
+    resetLastPublishedMessages();
+  });
+
+  it('tests something', async () => {
+    await myAwesomeFunc();
+
+    expect(getLastPublishedMessages).to.have.length(2);
+  });
+});
+```
+
 ### Consume messages
 
 Consumers are defined once, globally, per-microservice. There's no such thing as a "temporary" consumer.
@@ -285,4 +327,4 @@ a highly available service [here](https://status.cloudamqp.com/).
 
 ## License
 
-[MIT](license) © [Nikita Savchenko](https://nikita.tk)
+[MIT](LICENSE) © [Nikita Savchenko](https://nikita.tk)

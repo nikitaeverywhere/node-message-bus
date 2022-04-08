@@ -17,7 +17,7 @@ const _postInitPromise = new Promise<MessageBusConfig>(
 );
 
 /** Initialize the message bus. */
-export const initMessageBus = async (config: MessageBusConfig) => {
+export const initMessageBus = async (config: MessageBusConfig = {}) => {
   initPromiseResolve(config);
   await _postInitPromise;
 };
