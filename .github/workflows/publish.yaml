@@ -3,7 +3,7 @@ name: Publish NPM package
 on:
   push:
     branches:
-      - master
+      - main
 
 env:
   CLOUDAMQP_API_KEY: ${{ secrets.CLOUDAMQP_API_KEY }}
