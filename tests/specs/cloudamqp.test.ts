@@ -4,6 +4,7 @@ import {
   configureMessageBus,
   consumeMessages,
   DEFAULT_EXCHANGE_NAME,
+  IMessage,
   initMessageBus,
   isMessageBusHealthy,
   messageBusStopAllConsumers,
@@ -74,10 +75,10 @@ describe('node-message-bus', () => {
     });
 
     it('publishes and consumes a primitive message', async () => {
-      type MessageType = {
+      interface MessageType extends IMessage {
         routingKey: 'automation.run';
         data: { pipelineId: string; stepId: string };
-      };
+      }
       const consumePromise = new Promise((r) =>
         consumeMessages<MessageType>({
           queueName: 'test-queue-1',
@@ -170,10 +171,17 @@ describe('node-message-bus', () => {
     });
 
     it('publishes and consumes multiple messages', async () => {
+      type MessageType = IMessage<
+        'automation.run',
+        {
+          pipelineId: string;
+          stepId: string;
+        }
+      >;
       const consumedMessages: any[] = [];
       await Promise.all(
         [1, 2, 3].map((i) =>
-          publishMessage({
+          publishMessage<MessageType>({
             routingKey: 'automation.run',
             data: {
               pipelineId: i.toString(),
@@ -182,7 +190,7 @@ describe('node-message-bus', () => {
           })
         )
       );
-      consumeMessages({
+      consumeMessages<MessageType>({
         queueName: 'test-queue-1',
         handler: ({ data }) => {
           consumedMessages.push(data);

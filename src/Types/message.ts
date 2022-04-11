@@ -1,4 +1,7 @@
-export interface IMessage {
-  routingKey: string;
-  data: any;
+export interface IMessage<
+  TRoutingKey extends string = string,
+  TData = unknown
+> {
+  routingKey: TRoutingKey;
+  data: TData;
 }
