@@ -8,9 +8,7 @@ const EXP_BACKOFF_HEADER_NAME = 'x-backoff-sec';
 const EXP_BACKOFF_MULTIPLIER = 4;
 const MAX_EXP_BACKOFF = 1000 * 1024;
 
-interface HandlerExtraParams extends MessageProperties, ConsumeMessageFields {
-  data: any;
-}
+interface HandlerExtraParams extends MessageProperties, ConsumeMessageFields {}
 
 export const consumeMessages = async <DataType = any>({
   queueName,

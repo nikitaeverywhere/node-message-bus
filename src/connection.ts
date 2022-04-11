@@ -43,6 +43,8 @@ const initPromise = (async () => {
       `FATAL: node-message-bus requires NODE_MESSAGE_BUS_CONNECTION_URL environment variable to be set.`
     );
   }
+
+  log(`Trying to connect to ${getPrintableConnectionString(connectionUrl)}...`);
   const connection = amqp.connect([connectionUrl]);
   connection.on('connect', () => {
     log(

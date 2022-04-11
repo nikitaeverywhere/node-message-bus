@@ -1,6 +1,6 @@
 {
   "name": "node-message-bus",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Minimalistic and complete AMQP message bus implementation",
   "main": "lib/index.js",
   "files": [

@@ -24,7 +24,6 @@ export const initMessageBus = async (config: MessageBusConfig = {}) => {
 
 const channelPromise = getConnection()
   .then((connection) => {
-    log(`Initializing connection...`);
     return connection.createChannel({
       json: true,
       setup: async (channel: ConfirmChannel) => {
