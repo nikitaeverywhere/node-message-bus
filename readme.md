@@ -65,7 +65,7 @@ NODE_ENV=test
 # Optional. An API key from https://customer.cloudamqp.com/ for testing, used to spin up dynamic
 # RabbitMQ instances. Read below to understand how dynamic instances are created.
 NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_API_KEY=faf83b09-352f-add3-c2e3-c83212a32344
-NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_INSTANCE_LIFETIME=86400000
+NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_INSTANCE_LIFETIME=3600000
 ```
 
 ## Examples
