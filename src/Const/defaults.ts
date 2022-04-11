@@ -1,25 +1,21 @@
-import { Options } from 'amqplib';
+import {
+  BindingConfig,
+  ExchangeConfig,
+  ExchangeType,
+  QueueConfig,
+} from 'Types';
 
-type ExchangeType = 'direct' | 'topic' | 'fanout' | 'headers';
-export const EXCHANGE_TYPES = ['direct', 'topic', 'fanout', 'headers'];
+export const EXCHANGE_TYPES: ExchangeType[] = [
+  'direct',
+  'topic',
+  'fanout',
+  'headers',
+];
 
 export interface MessageBusConfig {
-  exchanges?: {
-    name: string;
-    type: ExchangeType;
-    options?: Options.AssertExchange;
-  }[];
-  queues?: {
-    name: string;
-    options?: Omit<Options.AssertQueue, 'deadLetterRoutingKey'> & {
-      deadLetterRoutingKey: string;
-    };
-  }[];
-  bindings?: {
-    fromExchange?: string;
-    toQueue: string;
-    routingKey: `${string}.*` | `${string}.#` | string;
-  }[];
+  exchanges?: ExchangeConfig[];
+  queues?: QueueConfig[];
+  bindings?: BindingConfig[];
 }
 
 export const DEFAULT_EXCHANGE_NAME =

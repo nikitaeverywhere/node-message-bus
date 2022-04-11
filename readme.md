@@ -27,6 +27,7 @@ for RabbitMQ, bringing the most critical features to build with message bus patt
    2. [Disconnect](#disconnect)
    3. [Publish messages](#publish-messages)
    4. [Consume messages](#consume-messages)
+   5. [Using message types](#using-message-types)
 5. [Features](#features)
    1. [Built-in exponential backoff](built-in-exponential-backoff)
    2. [Spot RabbitMQ instances for testing](#spot-rabbitmq-instances-for-testing)
@@ -263,9 +264,63 @@ import { consumeMessages } from 'node-message-bus';
 
 await consumeMessages({
   queueName: 'test-queue-1',
-  handler: async ({ data, routingKey }) => {
+  handler: async ({ data, routingKey, failThisMessage }) => {
     // From the previous example, data is an object { info: "...", or: "..." }.
     // Any errors thrown in this code will be logged and will nack the message.
+    await failThisMessage(
+      new Error(
+        '"soft fail" this message, which sends it to the backoff queue.'
+      )
+    );
+  },
+});
+```
+
+### Using message types
+
+It is recommended to use `node-message-bus` with typed messages, to ensure data integrity during compilation.
+You can do it purely with TypeScript:
+
+```typescript
+import { publishMessage, consumeMessages, IMessage } from 'node-message-bus';
+
+/* Assuming @your-company/types is used across your NodeJS codebase. */
+import { Message } from '@your-company/types';
+
+interface MessageWorkerTaskA extends IMessage {
+  routingKey: 'worker.task-a';
+  data: {
+    typed: string;
+  };
+}
+
+interface MessageWorkerTaskB extends IMessage {
+  routingKey: 'worker.task-b';
+  data: number;
+}
+
+type Message = MessageWorkerTaskA | MessageWorkerTaskB;
+/*********************************************************************/
+
+// Publish message with type.
+await publishMessage<MessageWorkerTaskA>({
+  routingKey: 'worker.task-a',
+  data: {
+    typed: 'Hello, world!',
+  },
+});
+
+// Consume message of type (here we use the union time as an example).
+await consumeMessages<Message>({
+  queueName: 'my-queue',
+  handler: async ({ routingKey, data, failThisMessage }) => {
+    if (routingKey === 'worker.task-a') {
+      // Handle task A, where {data} is of type MessageWorkerTaskA
+    } else if (routingKey === 'worker.task-b') {
+      // Handle task B, where {data} is of type MessageWorkerTaskB
+    } else {
+      await failThisMessage();
+    }
   },
 });
 ```

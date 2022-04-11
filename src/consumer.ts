@@ -1,5 +1,11 @@
-import { ConsumeMessageFields, MessageProperties } from 'amqplib';
-import { error, info, log } from 'Utils';
+import { ChannelWrapper } from 'amqp-connection-manager';
+import {
+  ConsumeMessage,
+  ConsumeMessageFields,
+  MessageProperties,
+} from 'amqplib';
+import { IMessage, QueueConfig } from 'Types';
+import { error as logError, info, log } from 'Utils';
 import { getChannel } from './channel';
 import { getMessageBusConfig } from './config';
 import { DEFAULT_EXCHANGE_NAME } from './Const';
@@ -8,14 +14,88 @@ const EXP_BACKOFF_HEADER_NAME = 'x-backoff-sec';
 const EXP_BACKOFF_MULTIPLIER = 4;
 const MAX_EXP_BACKOFF = 1000 * 1024;
 
-interface HandlerExtraParams extends MessageProperties, ConsumeMessageFields {}
+interface HandlerExtraParams extends MessageProperties, ConsumeMessageFields {
+  failThisMessage: (error?: Error) => Promise<void>;
+}
 
-export const consumeMessages = async <DataType = any>({
+const backoffRetryMessage = async <DataType = any>({
+  message,
+  queue,
+  channel,
+  data,
+  error,
+}: {
+  message: ConsumeMessage;
+  queue: QueueConfig;
+  channel: ChannelWrapper;
+  data: DataType;
+  error?: Error;
+}) => {
+  const currentBackoffSeconds =
+    parseInt(message.properties.headers[EXP_BACKOFF_HEADER_NAME]) || 0;
+  const nextBackoffSeconds = Math.min(
+    MAX_EXP_BACKOFF,
+    currentBackoffSeconds
+      ? currentBackoffSeconds * EXP_BACKOFF_MULTIPLIER
+      : 1000
+  );
+  const backoffQueueName = `${queue.name}.backoff-${Math.floor(
+    nextBackoffSeconds / 1000
+  )}s+${message.fields.routingKey}`;
+
+  if (error) {
+    logError(
+      `Error when consuming message from queue "${queue.name}". The message will be requeued to "${backoffQueueName}". Routing key: ${message.fields.routingKey}. ${error.stack}`
+    );
+  } else {
+    log(
+      `Message from queue "${queue.name}" was canceled. The message will be requeued to "${backoffQueueName}". Routing key: ${message.fields.routingKey}`
+    );
+  }
+
+  try {
+    log(
+      `Asserting backoff queue for routing key "${message.fields.routingKey}".`
+    );
+    await channel.assertQueue(backoffQueueName, {
+      ...queue.options,
+      messageTtl: nextBackoffSeconds,
+      deadLetterExchange:
+        queue.options?.deadLetterExchange || DEFAULT_EXCHANGE_NAME,
+      deadLetterRoutingKey: message.fields.routingKey,
+    });
+  } catch (e) {
+    logError(
+      `Failed to assert queue "${queue.name}" with options ${JSON.stringify(
+        queue.options
+      )}: ${e}`
+    );
+    await channel.nack(message);
+    return;
+  }
+
+  try {
+    await channel.sendToQueue(backoffQueueName, data, {
+      headers: {
+        ...message.properties.headers,
+        [EXP_BACKOFF_HEADER_NAME]: nextBackoffSeconds,
+      },
+    });
+  } catch (e) {
+    logError(`Failed to send message to the queue "${backoffQueueName}": ${e}`);
+    await channel.nack(message);
+    return;
+  }
+
+  await channel.ack(message);
+};
+
+export const consumeMessages = async <DataTypeOverrides extends IMessage>({
   queueName,
   handler,
 }: {
   queueName: string;
-  handler: (arg: HandlerExtraParams & { data: DataType }) => any;
+  handler: (arg: HandlerExtraParams & DataTypeOverrides) => any;
 }) => {
   const channel = await getChannel();
   const queue = getMessageBusConfig().queues.find((q) => q.name === queueName);
@@ -48,72 +128,38 @@ export const consumeMessages = async <DataType = any>({
         );
       }
 
-      try {
-        log(
-          `Consuming message from queue=${queueName}, routingKey=${message.fields.routingKey}`
-        );
-        await handler({
-          ...message.properties,
-          ...message.fields,
-          data: data as unknown as DataType,
+      let messageBackoff = false;
+      const failThisMessage = async (e?: Error) => {
+        if (messageBackoff) {
+          return;
+        }
+        messageBackoff = true;
+        await backoffRetryMessage({
+          message,
+          queue,
+          channel,
+          data,
+          error: e,
         });
-        channel.ack(message);
+      };
+      const handlerParams: HandlerExtraParams & IMessage = {
+        ...message.properties,
+        ...message.fields,
+        failThisMessage,
+        data,
+      };
+
+      log(
+        `Consuming message from queue=${queueName}, routingKey=${message.fields.routingKey}`
+      );
+      try {
+        await handler(handlerParams as HandlerExtraParams & DataTypeOverrides);
+
+        if (!messageBackoff) {
+          channel.ack(message);
+        }
       } catch (e: any) {
-        const currentBackoffSeconds =
-          parseInt(message.properties.headers[EXP_BACKOFF_HEADER_NAME]) || 0;
-        const nextBackoffSeconds = Math.min(
-          MAX_EXP_BACKOFF,
-          currentBackoffSeconds
-            ? currentBackoffSeconds * EXP_BACKOFF_MULTIPLIER
-            : 1000
-        );
-        const backoffQueueName = `${queue.name}.backoff-${Math.floor(
-          nextBackoffSeconds / 1000
-        )}s+${message.fields.routingKey}`;
-
-        error(
-          `Error when consuming message from queue "${queueName}". The message will be requeued to "${backoffQueueName}". Message: ${message.content.toString()}. ${
-            e.stack
-          }`
-        );
-
-        try {
-          log(
-            `Asserting backoff queue for routing key "${message.fields.routingKey}"`
-          );
-          await channel.assertQueue(backoffQueueName, {
-            ...queue.options,
-            messageTtl: nextBackoffSeconds,
-            deadLetterExchange:
-              queue.options?.deadLetterExchange || DEFAULT_EXCHANGE_NAME,
-            deadLetterRoutingKey: message.fields.routingKey,
-          });
-        } catch (e) {
-          error(
-            `Failed to assert queue "${
-              queue.name
-            }" with options ${JSON.stringify(queue.options)}: ${e}`
-          );
-          await channel.nack(message);
-          return;
-        }
-
-        try {
-          await channel.sendToQueue(backoffQueueName, data, {
-            headers: {
-              ...message.properties.headers,
-              [EXP_BACKOFF_HEADER_NAME]: nextBackoffSeconds,
-            },
-          });
-        } catch (e) {
-          error(
-            `Failed to send message to the queue "${backoffQueueName}": ${e}`
-          );
-          await channel.nack(message);
-          return;
-        }
-
-        await channel.ack(message);
+        await failThisMessage(e);
       }
     },
     {

@@ -17,7 +17,8 @@
     "baseUrl": ".",
     "paths": {
       "Const*": ["src/Const*", "src/Const"],
-      "Utils*": ["src/Utils*", "src/Utils"]
+      "Utils*": ["src/Utils*", "src/Utils"],
+      "Types*": ["src/Types*", "src/Types"]
     }
   },
   "include": ["src"]

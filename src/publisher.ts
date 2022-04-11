@@ -1,16 +1,15 @@
 import { Options } from 'amqplib';
+import { IMessage } from 'Types';
 import { error, log } from 'Utils';
 import { getChannel } from './channel';
 import { DEFAULT_CONFIG, DEFAULT_EXCHANGE_NAME } from './Const';
 
-interface Message {
-  routingKey: string;
-  data: any;
+interface Message extends IMessage {
   exchangeName?: string;
   options?: Options.Publish;
 }
 
-interface DirectMessage {
+interface DirectMessage extends Omit<IMessage, 'routingKey'> {
   queueName: string;
   data: any;
   options?: Options.Publish;

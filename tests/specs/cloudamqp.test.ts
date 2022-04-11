@@ -74,13 +74,17 @@ describe('node-message-bus', () => {
     });
 
     it('publishes and consumes a primitive message', async () => {
+      type MessageType = {
+        routingKey: 'automation.run';
+        data: { pipelineId: string; stepId: string };
+      };
       const consumePromise = new Promise((r) =>
-        consumeMessages({
+        consumeMessages<MessageType>({
           queueName: 'test-queue-1',
           handler: ({ data }) => r(data),
         })
       );
-      await publishMessage({
+      await publishMessage<MessageType>({
         routingKey: 'automation.run',
         data: {
           pipelineId: 'a',
@@ -232,6 +236,48 @@ describe('node-message-bus', () => {
     });
   });
 
+  it('allows to configure additional queues in runtime', async () => {
+    await configureMessageBus({
+      queues: [
+        {
+          name: 'dynamic-queue',
+        },
+      ],
+      bindings: [
+        {
+          toQueue: 'dynamic-queue',
+          routingKey: 'notification.user',
+        },
+      ],
+    });
+
+    const consumedMessages: any[] = [];
+    await consumeMessages({
+      queueName: 'dynamic-queue',
+      handler: ({ data }) => {
+        consumedMessages.push(data);
+      },
+    });
+
+    const random = Math.random().toString();
+    await publishMessage({
+      routingKey: 'notification.user',
+      data: {
+        recipientUserId: random,
+        notification: {
+          id: 'automationPipelineFailed',
+          data: {
+            pipelineId: '',
+          },
+        },
+      },
+    });
+
+    await until(() => consumedMessages.length === 1);
+
+    expect(consumedMessages[0].recipientUserId).to.be.equal(random);
+  });
+
   describe('errors', () => {
     it('uses exponential backoff for failed deliveries', async () => {
       let handledTimes: number[] = [];
@@ -279,47 +325,52 @@ describe('node-message-bus', () => {
         stepId: 'start',
       });
     });
-  });
 
-  it('allows to configure additional queues in runtime', async () => {
-    await configureMessageBus({
-      queues: [
-        {
-          name: 'dynamic-queue',
+    it('allows to manually nack/backoff the message', async () => {
+      let handledTimes: number[] = [];
+      let handledData: any;
+      consumeMessages({
+        queueName: 'test-queue-1',
+        handler: async ({ data, headers, failThisMessage }) => {
+          console.log(
+            `Handling new message: ${data}, headers: ${JSON.stringify(headers)}`
+          );
+          handledTimes.push(Date.now());
+          if (handledTimes.length === 3) {
+            handledData = data;
+          } else {
+            await failThisMessage();
+          }
         },
-      ],
-      bindings: [
-        {
-          toQueue: 'dynamic-queue',
-          routingKey: 'notification.user',
+      });
+      await publishMessage({
+        routingKey: 'automation.run',
+        data: {
+          pipelineId: 'a',
+          stepId: 'start',
         },
-      ],
+      });
+
+      // Wait for data.
+      await new Promise((resolve) => {
+        const int = setInterval(() => {
+          if (handledTimes.length === 3) {
+            clearInterval(int);
+            resolve(1);
+          }
+        }, 50);
+      });
+
+      const d1 = handledTimes[1] - handledTimes[0];
+      const d2 = handledTimes[2] - handledTimes[1];
+      expect(d1).to.be.greaterThanOrEqual(1000);
+      expect(d1).to.be.lessThanOrEqual(3000);
+      expect(d2).to.be.greaterThanOrEqual(4000);
+      expect(d2).to.be.lessThanOrEqual(6000);
+      expect(handledData).to.be.deep.equal({
+        pipelineId: 'a',
+        stepId: 'start',
+      });
     });
-
-    const consumedMessages: any[] = [];
-    await consumeMessages({
-      queueName: 'dynamic-queue',
-      handler: ({ data }) => {
-        consumedMessages.push(data);
-      },
-    });
-
-    const random = Math.random().toString();
-    await publishMessage({
-      routingKey: 'notification.user',
-      data: {
-        recipientUserId: random,
-        notification: {
-          id: 'automationPipelineFailed',
-          data: {
-            pipelineId: '',
-          },
-        },
-      },
-    });
-
-    await until(() => consumedMessages.length === 1);
-
-    expect(consumedMessages[0].recipientUserId).to.be.equal(random);
   });
 });
