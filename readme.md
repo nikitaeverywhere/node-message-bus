@@ -287,6 +287,7 @@ import { publishMessage, consumeMessages, IMessage } from 'node-message-bus';
 /* Assuming @your-company/types is used across your NodeJS codebase. */
 import { Message } from '@your-company/types';
 
+// You can declare types with "extends",
 interface MessageWorkerTaskA extends IMessage {
   routingKey: 'worker.task-a';
   data: {
@@ -294,10 +295,8 @@ interface MessageWorkerTaskA extends IMessage {
   };
 }
 
-interface MessageWorkerTaskB extends IMessage {
-  routingKey: 'worker.task-b';
-  data: number;
-}
+// or using a generic type,
+type MessageWorkerTaskB = IMessage<'worker.task-b', { myData: number }>;
 
 type Message = MessageWorkerTaskA | MessageWorkerTaskB;
 /*********************************************************************/
