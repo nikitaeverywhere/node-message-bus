@@ -11,17 +11,11 @@ import {
   getNewCloudAmqpInstance,
 } from './cloudamqp';
 
-type AmqpConnection = ReturnType<typeof amqp.connect>;
-
 let connectionUrl = '';
 let cloudAmqpInstanceId = 0;
 
 const usingCloudAMQP =
   NODE_ENV.startsWith('test') && NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_API_KEY;
-
-log(
-  `NODE_ENV=${NODE_ENV}, NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_API_KEY=${NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_API_KEY}`
-);
 
 const initPromise = (async () => {
   if (usingCloudAMQP) {
@@ -39,9 +33,15 @@ const initPromise = (async () => {
       })()
     : NODE_MESSAGE_BUS_CONNECTION_URL || '';
   if (!connectionUrl) {
-    throw new Error(
-      `FATAL: node-message-bus requires NODE_MESSAGE_BUS_CONNECTION_URL environment variable to be set.`
-    );
+    if (NODE_ENV.startsWith('test')) {
+      throw new Error(
+        `FATAL: node-message-bus requires either NODE_MESSAGE_BUS_CONNECTION_URL or NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_API_KEY environment variable to be set.`
+      );
+    } else {
+      throw new Error(
+        `FATAL: node-message-bus requires NODE_MESSAGE_BUS_CONNECTION_URL environment variable to be set. You can also use NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_API_KEY in conjunction with NODE_ENV=test.`
+      );
+    }
   }
 
   log(`Trying to connect to ${getPrintableConnectionString(connectionUrl)}...`);
