@@ -83,7 +83,7 @@ await initMessageBus();
 
 // Publishes to a default exchange specified via env vars.
 await publishMessage({
-  routingKey: 'myapp.test',
+  routingKey: 'worker.test',
   data: 'Hello',
 });
 ```
@@ -99,12 +99,12 @@ await initMessageBus({
   bindings: [
     {
       toQueue: 'test-queue-1',
-      routingKey: 'myapp.#', // For topic exchanges, means "All messages starting from 'myapp.'."
+      routingKey: 'worker.#', // For topic exchanges, means "All messages starting from 'worker.'."
     },
   ],
 });
 
-// Processes all messages from default (topic) exchange, where routing key starts with "myapp.".
+// Processes all messages from default (topic) exchange, where routing key starts with "worker.".
 await consumeMessages({
   queueName: 'test-queue-1',
   handler: async ({ data, routingKey }) => {
