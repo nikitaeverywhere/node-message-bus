@@ -1,2 +1,2 @@
 export const getPrintableConnectionString = (string: string) =>
-  string.replace(/:[^@]+@/g, ':***@');
+  string.replace(/([a-z]+:\/\/[^:]+)?:[^@]+@/g, '$1:***@');
