@@ -1,14 +1,15 @@
 {
   "name": "node-message-bus",
-  "version": "2.1.5",
+  "version": "2.1.6",
   "description": "Minimalistic and complete AMQP message bus implementation",
   "main": "lib/index.js",
   "files": [
     "lib/**/*"
   ],
   "scripts": {
-    "test": "npm run test:cloudamqp",
+    "test": "npm run test:cloudamqp && npm run test:connection",
     "test:cloudamqp": "env-cmd -f tests/common.env -f tests/specs/cloudamqp.env --use-shell \"export NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_API_KEY=$CLOUDAMQP_API_KEY && mocha --config=tests/mocha.yaml tests/**/*cloudamqp.test.ts\"",
+    "test:connection": "env-cmd -f tests/common.env -f tests/specs/connection.env mocha --config=tests/mocha.yaml tests/**/*connection.test.ts",
     "build": "tsc && tsc-alias",
     "start": "npm run build -- -w & tsc-alias -w"
   },

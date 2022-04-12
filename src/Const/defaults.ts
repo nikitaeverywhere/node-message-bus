@@ -1,9 +1,4 @@
-import {
-  BindingConfig,
-  ExchangeConfig,
-  ExchangeType,
-  QueueConfig,
-} from 'Types';
+import { ExchangeType, MessageBusConfig } from 'Types';
 
 export const EXCHANGE_TYPES: ExchangeType[] = [
   'direct',
@@ -11,12 +6,6 @@ export const EXCHANGE_TYPES: ExchangeType[] = [
   'fanout',
   'headers',
 ];
-
-export interface MessageBusConfig {
-  exchanges?: ExchangeConfig[];
-  queues?: QueueConfig[];
-  bindings?: BindingConfig[];
-}
 
 export const DEFAULT_EXCHANGE_NAME =
   process.env.NODE_MESSAGE_BUS_DEFAULT_EXCHANGE_NAME || 'amq.topic';

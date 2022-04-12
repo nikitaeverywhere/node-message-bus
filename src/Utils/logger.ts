@@ -1,7 +1,6 @@
-let defaultLoggerFunction = (
-  logType: 'log' | 'warn' | 'error' | 'info',
-  message: string
-) =>
+import { LogType } from 'Types';
+
+let defaultLoggerFunction = (logType: LogType, message: string) =>
   console[logType](
     `${new Date().toLocaleString()} node-message-bus: ${message}`
   );

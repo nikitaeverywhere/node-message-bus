@@ -1,4 +1,5 @@
 import { Options } from 'amqplib';
+import { LogType } from './logger';
 
 export type ExchangeType = 'direct' | 'topic' | 'fanout' | 'headers';
 
@@ -19,4 +20,11 @@ export interface BindingConfig {
   fromExchange?: string;
   toQueue: string;
   routingKey: `${string}.*` | `${string}.#` | string;
+}
+
+export interface MessageBusConfig {
+  logger?: (logType: LogType, message: string) => unknown;
+  exchanges?: ExchangeConfig[];
+  queues?: QueueConfig[];
+  bindings?: BindingConfig[];
 }

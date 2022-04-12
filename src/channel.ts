@@ -1,8 +1,8 @@
 import { ConfirmChannel } from 'amqplib';
+import { MessageBusConfig } from 'Types';
 import { error, log } from 'Utils';
-import { configureMessageBus } from './config';
+import { configureMessageBus, configureMessageBusStatic } from './config';
 import { closeMessageBusConnection, getConnection } from './connection';
-import { MessageBusConfig } from './Const';
 
 let initPromiseResolve = (value: MessageBusConfig) => {
   value;
@@ -18,6 +18,11 @@ const _postInitPromise = new Promise<MessageBusConfig>(
 
 /** Initialize the message bus. */
 export const initMessageBus = async (config: MessageBusConfig = {}) => {
+  // Pass only properties that need to be configured BEFORE RabbitMQ connection is established.
+  await configureMessageBusStatic({
+    logger: config.logger,
+  });
+
   initPromiseResolve(config);
   await _postInitPromise;
 };

@@ -1,14 +1,11 @@
 import { ChannelWrapper } from 'amqp-connection-manager';
 import { ConfirmChannel } from 'amqplib';
-import { error, log } from 'Utils';
-import {
-  DEFAULT_CONFIG,
-  DEFAULT_EXCHANGE_NAME,
-  MessageBusConfig,
-} from './Const';
+import { MessageBusConfig } from 'Types';
+import { error, log, setLoggerFunction } from 'Utils';
+import { DEFAULT_CONFIG, DEFAULT_EXCHANGE_NAME } from './Const';
 
 // Config that was applied through the lifetime of the message bus.
-const appliedConfig: Required<MessageBusConfig> = {
+const appliedConfig: Required<Omit<MessageBusConfig, 'logger'>> = {
   exchanges: [],
   queues: [],
   bindings: [],
@@ -19,10 +16,18 @@ const appliedConfig: Required<MessageBusConfig> = {
  */
 export const getMessageBusConfig = () => appliedConfig;
 
+export const configureMessageBusStatic = async (config: MessageBusConfig) => {
+  if (typeof config.logger === 'function') {
+    setLoggerFunction(config.logger);
+  }
+};
+
 export const configureMessageBus = async (
   config: MessageBusConfig,
   channel?: ChannelWrapper | ConfirmChannel
 ) => {
+  configureMessageBusStatic(config);
+
   if (!channel) {
     // To avoid creating circular dependency.
     channel = await (await import('./channel')).getChannel();

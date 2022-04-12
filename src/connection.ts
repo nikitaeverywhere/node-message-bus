@@ -58,6 +58,9 @@ const initPromise = (async () => {
       )}, ${err}`
     );
   });
+  connection.on('connectFailed', ({ err }) => {
+    log(`Failed to connect to RabbitMQ: ${err}`);
+  });
 
   return connection;
 })();
