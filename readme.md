@@ -28,6 +28,7 @@ for RabbitMQ, bringing the most critical features to build with message bus patt
    3. [Publish messages](#publish-messages)
    4. [Consume messages](#consume-messages)
    5. [Using message types](#using-message-types)
+   6. [Other functions](#other-functions)
 5. [Features](#features)
    1. [Built-in exponential backoff](built-in-exponential-backoff)
    2. [Spot RabbitMQ instances for testing](#spot-rabbitmq-instances-for-testing)
@@ -322,6 +323,18 @@ await consumeMessages<Message>({
     }
   },
 });
+```
+
+### Other functions
+
+#### deleteQueue
+
+`deleteQueue` allows to delete a queue.
+
+```ts
+import { deleteQueue } from 'node-message-bus';
+
+await deleteQueue('test-queue-1');
 ```
 
 ## Features

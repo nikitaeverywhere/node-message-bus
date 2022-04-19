@@ -5,4 +5,5 @@ export * from './consumer';
 export * from './health';
 export * from './misc';
 export * from './publisher';
+export * from './queues';
 export * from './Types';

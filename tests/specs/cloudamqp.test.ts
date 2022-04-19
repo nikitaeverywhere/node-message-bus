@@ -4,6 +4,7 @@ import {
   configureMessageBus,
   consumeMessages,
   DEFAULT_EXCHANGE_NAME,
+  deleteQueue,
   IMessage,
   initMessageBus,
   isMessageBusHealthy,
@@ -241,6 +242,42 @@ describe('node-message-bus', () => {
       await new Promise((r) => setTimeout(r, 2000));
 
       expect(consumedMessages).to.have.length(0);
+    });
+
+    it('deletes a queue', async () => {
+      const tempQueueName = `temp-${Math.random().toString().slice(2, 7)}`;
+      const routingKey = 'deletetest.test.test';
+      await configureMessageBus({
+        queues: [
+          {
+            name: tempQueueName,
+          },
+        ],
+        bindings: [
+          {
+            routingKey: routingKey,
+            toQueue: tempQueueName,
+          },
+        ],
+      });
+      await publishMessage({
+        routingKey: routingKey,
+        data: { test: 1 },
+      });
+      await new Promise((r) => setTimeout(r, 500));
+      const { messageCount } = await deleteQueue(tempQueueName);
+
+      expect(messageCount).to.be.equal(1);
+
+      // Retry and ensure no messages.
+      await publishMessage({
+        routingKey: routingKey,
+        data: { test: 1 },
+      });
+      await new Promise((r) => setTimeout(r, 500));
+      const res = await deleteQueue(tempQueueName);
+
+      expect(res.messageCount).to.be.equal(0);
     });
   });
 
