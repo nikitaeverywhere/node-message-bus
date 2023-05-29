@@ -1,6 +1,6 @@
 {
   "name": "node-message-bus",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "Minimalistic and complete AMQP message bus implementation",
   "main": "lib/index.js",
   "files": [
@@ -37,23 +37,23 @@
   },
   "homepage": "https://github.com/ZitRos/node-message-bus#readme",
   "devDependencies": {
-    "@types/amqp-connection-manager": "^2.0.12",
-    "@types/chai": "^4.3.0",
-    "@types/mocha": "^9.1.0",
-    "@types/node-fetch": "^2.6.1",
-    "chai": "^4.3.6",
+    "@types/amqp-connection-manager": "^3.4.1",
+    "@types/chai": "^4.3.5",
+    "@types/mocha": "^10.0.1",
+    "@types/node-fetch": "^2.6.4",
+    "chai": "^4.3.7",
     "env-cmd": "^10.1.0",
-    "mocha": "^9.2.2",
-    "prettier": "^2.6.2",
-    "prettier-plugin-organize-imports": "^2.3.4",
-    "ts-node": "^10.7.0",
-    "tsc-alias": "^1.6.6",
-    "typescript": "^4.6.3"
+    "mocha": "^10.2.0",
+    "prettier": "^2.8.8",
+    "prettier-plugin-organize-imports": "^3.2.2",
+    "ts-node": "^10.9.1",
+    "tsc-alias": "^1.8.6",
+    "typescript": "^5.0.4"
   },
   "dependencies": {
-    "@types/amqplib": "^0.8.2",
-    "amqp-connection-manager": "^4.1.1",
-    "amqplib": "^0.8.0",
-    "node-fetch": "^2.6.7"
+    "@types/amqplib": "^0.10.1",
+    "amqp-connection-manager": "^4.1.13",
+    "amqplib": "^0.10.3",
+    "node-fetch": "^2.6.11"
   }
 }

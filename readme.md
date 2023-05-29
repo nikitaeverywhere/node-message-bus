@@ -4,7 +4,7 @@
 [![License](https://img.shields.io/npm/l/node-message-bus)](LICENSE)
 [![GitHub](https://img.shields.io/github/stars/zitros/node-message-bus.svg?style=social&label=Star)](https://github.com/ZitRos/node-message-bus)
 
-Ready-to-go RabbitMQ support for your NodeJS microservices. A convenient wrapper around [ampqlib](https://www.npmjs.com/package/amqplib)
+Declarative AMQP (RabbitMQ / LavinMQ / ...) support for your NodeJS microservices. A convenient wrapper around [ampqlib](https://www.npmjs.com/package/amqplib)
 for RabbitMQ, bringing the most critical features to build with message bus pattern.
 
 ## Features
@@ -91,25 +91,34 @@ await publishMessage({
 
 ### Consumer
 
+Application init file:
+
 ```typescript
-import { initMessageBus, consumeMessages } from 'node-message-bus';
+import { initMessageBus } from 'node-message-bus';
 
 // Inits message bus with a new queue, which takes messages from the default exchange.
 // Set NODE_MESSAGE_BUS_CONNECTION_URL env var for connection string.
 await initMessageBus({
-  bindings: [
-    {
-      toQueue: 'test-queue-1',
-      routingKey: 'worker.#', // For topic exchanges, means "All messages starting from 'worker.'."
-    },
-  ],
+  // Global init options
+});
+```
+
+Specific consumer handler file:
+
+```typescript
+import { configureMessageBus, consumeMessages } from 'node-message-bus';
+
+await configureMessageBus({
+  queues: ['test-queue-1'],
+  bindings: [{ toQueue: 'test-queue-1', routingKey: 'worker.#' }],
 });
 
-// Processes all messages from default (topic) exchange, where routing key starts with "worker.".
 await consumeMessages({
   queueName: 'test-queue-1',
   handler: async ({ data, routingKey }) => {
+    //
     console.log(`Consumed message with routingKey=${routingKey}:`, data);
+    //
   },
 });
 ```

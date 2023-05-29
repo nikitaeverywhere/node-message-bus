@@ -59,7 +59,7 @@ const initPromise = (async () => {
     );
   });
   connection.on('connectFailed', ({ err }) => {
-    log(`Failed to connect to RabbitMQ: ${err}`);
+    log(`Failed to connect to RabbitMQ: ${err}; Retrying...`);
   });
 
   return connection;
