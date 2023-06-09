@@ -77,25 +77,22 @@ describe('node-message-bus', () => {
 
     it('publishes and consumes a primitive message', async () => {
       interface MessageType extends IMessage {
-        routingKey: 'automation.run';
-        data: { pipelineId: string; stepId: string };
+        key: 'automation.run';
+        body: { pipelineId: string; stepId: string };
       }
       const consumePromise = new Promise((r) =>
-        consumeMessages<MessageType>({
-          queueName: 'test-queue-1',
-          handler: ({ data }) => r(data),
-        })
+        consumeMessages<MessageType>('test-queue-1', ({ body }) => r(body))
       );
       await publishMessage<MessageType>({
-        routingKey: 'automation.run',
-        data: {
+        key: 'automation.run',
+        body: {
           pipelineId: 'a',
           stepId: 'start',
         },
       });
-      const dataReceived = await consumePromise;
+      const bodyReceived = await consumePromise;
 
-      expect(dataReceived).to.be.deep.equal({
+      expect(bodyReceived).to.be.deep.equal({
         pipelineId: 'a',
         stepId: 'start',
       });
@@ -103,21 +100,18 @@ describe('node-message-bus', () => {
 
     it('publishes and consumes a composite message', async () => {
       const consumePromise = new Promise((r) =>
-        consumeMessages({
-          queueName: 'test-queue-1',
-          handler: ({ data }) => r(data),
-        })
+        consumeMessages('test-queue-1', ({ body }) => r(body))
       );
       await publishMessage({
-        routingKey: 'automation.run',
-        data: {
+        key: 'automation.run',
+        body: {
           pipelineId: 'b',
           stepId: 'start',
         },
       });
-      const dataReceived = await consumePromise;
+      const bodyReceived = await consumePromise;
 
-      expect(dataReceived).to.be.deep.equal({
+      expect(bodyReceived).to.be.deep.equal({
         pipelineId: 'b',
         stepId: 'start',
       });
@@ -126,14 +120,11 @@ describe('node-message-bus', () => {
     it('publishes and consumes a wildcard routing key message', async () => {
       await purgeQueue({ queueName: 'test-queue-any' });
       const consumePromise = new Promise((r) =>
-        consumeMessages({
-          queueName: 'test-queue-any',
-          handler: ({ data }) => r(data),
-        })
+        consumeMessages('test-queue-any', ({ body }) => r(body))
       );
       await publishMessage({
-        routingKey: 'automation.new',
-        data: {
+        key: 'automation.new',
+        body: {
           type: 'step2',
           args: {
             propertyId: 'x',
@@ -141,9 +132,9 @@ describe('node-message-bus', () => {
           },
         },
       });
-      const dataReceived = await consumePromise;
+      const bodyReceived = await consumePromise;
 
-      expect(dataReceived).to.be.deep.equal({
+      expect(bodyReceived).to.be.deep.equal({
         type: 'step2',
         args: {
           propertyId: 'x',
@@ -154,18 +145,15 @@ describe('node-message-bus', () => {
 
     it('publishes and consumes a message sent to queue', async () => {
       const consumePromise = new Promise((r) =>
-        consumeMessages({
-          queueName: 'test-queue-1',
-          handler: ({ data }) => r(data),
-        })
+        consumeMessages('test-queue-1', ({ body }) => r(body))
       );
       await publishMessageToQueue({
         queueName: 'test-queue-1',
-        data: { pipelineId: 'b', stepId: 'start' },
+        body: { pipelineId: 'b', stepId: 'start' },
       });
-      const dataReceived = await consumePromise;
+      const bodyReceived = await consumePromise;
 
-      expect(dataReceived).to.be.deep.equal({
+      expect(bodyReceived).to.be.deep.equal({
         pipelineId: 'b',
         stepId: 'start',
       });
@@ -183,19 +171,16 @@ describe('node-message-bus', () => {
       await Promise.all(
         [1, 2, 3].map((i) =>
           publishMessage<MessageType>({
-            routingKey: 'automation.run',
-            data: {
+            key: 'automation.run',
+            body: {
               pipelineId: i.toString(),
               stepId: 'start',
             },
           })
         )
       );
-      consumeMessages<MessageType>({
-        queueName: 'test-queue-1',
-        handler: ({ data }) => {
-          consumedMessages.push(data);
-        },
+      consumeMessages<MessageType>('test-queue-1', ({ body }) => {
+        consumedMessages.push(body);
       });
 
       await new Promise((resolve) => {
@@ -225,15 +210,12 @@ describe('node-message-bus', () => {
       await purgeQueue({
         queueName: queueHandler,
       });
-      await consumeMessages({
-        queueName: queueHandler,
-        handler: ({ data }) => {
-          consumedMessages.push(data);
-        },
+      await consumeMessages(queueHandler, ({ body }) => {
+        consumedMessages.push(body);
       });
       await publishMessageToQueue({
         queueName,
-        data: { pipelineId: 'a', stepId: 'start' },
+        body: { pipelineId: 'a', stepId: 'start' },
       });
       await purgeQueue({
         queueName,
@@ -246,7 +228,7 @@ describe('node-message-bus', () => {
 
     it('deletes a queue', async () => {
       const tempQueueName = `temp-${Math.random().toString().slice(2, 7)}`;
-      const routingKey = 'deletetest.test.test';
+      const key = 'deletetest.test.test';
       await configureMessageBus({
         queues: [
           {
@@ -255,14 +237,14 @@ describe('node-message-bus', () => {
         ],
         bindings: [
           {
-            routingKey: routingKey,
+            routingKey: key,
             toQueue: tempQueueName,
           },
         ],
       });
       await publishMessage({
-        routingKey: routingKey,
-        data: { test: 1 },
+        key: key,
+        body: { test: 1 },
       });
       await new Promise((r) => setTimeout(r, 500));
       const { messageCount } = await deleteQueue(tempQueueName);
@@ -271,8 +253,8 @@ describe('node-message-bus', () => {
 
       // Retry and ensure no messages.
       await publishMessage({
-        routingKey: routingKey,
-        data: { test: 1 },
+        key: key,
+        body: { test: 1 },
       });
       await new Promise((r) => setTimeout(r, 500));
       const res = await deleteQueue(tempQueueName);
@@ -297,21 +279,18 @@ describe('node-message-bus', () => {
     });
 
     const consumedMessages: any[] = [];
-    await consumeMessages({
-      queueName: 'dynamic-queue',
-      handler: ({ data }) => {
-        consumedMessages.push(data);
-      },
+    await consumeMessages('dynamic-queue', ({ body }) => {
+      consumedMessages.push(body);
     });
 
     const random = Math.random().toString();
     await publishMessage({
-      routingKey: 'notification.user',
-      data: {
+      key: 'notification.user',
+      body: {
         recipientUserId: random,
         notification: {
           id: 'automationPipelineFailed',
-          data: {
+          body: {
             pipelineId: '',
           },
         },
@@ -327,29 +306,26 @@ describe('node-message-bus', () => {
     it('uses exponential backoff for failed deliveries', async () => {
       let handledTimes: number[] = [];
       let handledData: any;
-      consumeMessages({
-        queueName: 'test-queue-1',
-        handler: async ({ data, headers }) => {
-          console.log(
-            `Handling new message: ${data}, headers: ${JSON.stringify(headers)}`
-          );
-          handledTimes.push(Date.now());
-          if (handledTimes.length === 3) {
-            handledData = data;
-          } else {
-            throw new Error('dummy error - expected in test');
-          }
-        },
+      consumeMessages('test-queue-1', async ({ body, headers }) => {
+        console.log(
+          `Handling new message: ${body}, headers: ${JSON.stringify(headers)}`
+        );
+        handledTimes.push(Date.now());
+        if (handledTimes.length === 3) {
+          handledData = body;
+        } else {
+          throw new Error('dummy error - expected in test');
+        }
       });
       await publishMessage({
-        routingKey: 'automation.run',
-        data: {
+        key: 'automation.run',
+        body: {
           pipelineId: 'a',
           stepId: 'start',
         },
       });
 
-      // Wait for data.
+      // Wait for body.
       await new Promise((resolve) => {
         const int = setInterval(() => {
           if (handledTimes.length === 3) {
@@ -374,29 +350,29 @@ describe('node-message-bus', () => {
     it('allows to manually nack/backoff the message', async () => {
       let handledTimes: number[] = [];
       let handledData: any;
-      consumeMessages({
-        queueName: 'test-queue-1',
-        handler: async ({ data, headers, failThisMessage }) => {
+      consumeMessages(
+        'test-queue-1',
+        async ({ body, headers, failThisMessage }) => {
           console.log(
-            `Handling new message: ${data}, headers: ${JSON.stringify(headers)}`
+            `Handling new message: ${body}, headers: ${JSON.stringify(headers)}`
           );
           handledTimes.push(Date.now());
           if (handledTimes.length === 3) {
-            handledData = data;
+            handledData = body;
           } else {
             await failThisMessage();
           }
-        },
-      });
+        }
+      );
       await publishMessage({
-        routingKey: 'automation.run',
-        data: {
+        key: 'automation.run',
+        body: {
           pipelineId: 'a',
           stepId: 'start',
         },
       });
 
-      // Wait for data.
+      // Wait for body.
       await new Promise((resolve) => {
         const int = setInterval(() => {
           if (handledTimes.length === 3) {

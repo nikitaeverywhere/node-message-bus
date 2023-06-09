@@ -1,35 +1,37 @@
-import amqp from 'amqp-connection-manager';
 import {
   NODE_ENV,
   NODE_MESSAGE_BUS_CONNECTION_URL,
-  NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_API_KEY,
+  isUsingCloudAmqp,
 } from 'Const';
 import { error, getPrintableConnectionString, log } from 'Utils';
+import amqp from 'amqp-connection-manager';
 import {
   cleanupOldCloudAmqpInstances,
   deleteCloudAmqpInstance,
   getNewCloudAmqpInstance,
 } from './cloudamqp';
+import { amqpConfig } from './config';
 
 let connectionUrl = '';
 let cloudAmqpInstanceId = 0;
 
-const usingCloudAMQP =
-  NODE_ENV.startsWith('test') && NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_API_KEY;
+const useCloudAMQP = isUsingCloudAmqp();
 
 const initPromise = (async () => {
-  if (usingCloudAMQP) {
+  if (useCloudAMQP) {
     await cleanupOldCloudAmqpInstances();
   }
 
-  connectionUrl = usingCloudAMQP
+  connectionUrl = useCloudAMQP
     ? await (async () => {
         const instance = await getNewCloudAmqpInstance();
         cloudAmqpInstanceId = instance?.id || cloudAmqpInstanceId;
         if (!instance) {
-          error(`Unable to create a new CloudAMQP instance!`);
+          error(
+            `Unable to create a new CloudAMQP instance! Using NODE_MESSAGE_BUS_CONNECTION_URL`
+          );
         }
-        return instance?.url || `!unable-to-create-a-new-cloud-amqp-instance!`;
+        return instance?.url || NODE_MESSAGE_BUS_CONNECTION_URL;
       })()
     : NODE_MESSAGE_BUS_CONNECTION_URL || '';
   if (!connectionUrl) {
@@ -45,7 +47,7 @@ const initPromise = (async () => {
   }
 
   log(`Trying to connect to ${getPrintableConnectionString(connectionUrl)}...`);
-  const connection = amqp.connect([connectionUrl]);
+  const connection = amqp.connect([connectionUrl], amqpConfig || undefined);
   connection.on('connect', () => {
     log(
       `Connected to RabbitMQ: ${getPrintableConnectionString(connectionUrl)}`
@@ -59,7 +61,13 @@ const initPromise = (async () => {
     );
   });
   connection.on('connectFailed', ({ err }) => {
-    log(`Failed to connect to RabbitMQ: ${err}; Retrying...`);
+    if (useCloudAMQP) {
+      log(
+        `Connection failed, likely because CloudAMQP instance is not yet up. Waiting... [${err}]`
+      );
+    } else {
+      log(`Failed to connect to RabbitMQ: ${err}; Retrying...`);
+    }
   });
 
   return connection;
@@ -75,7 +83,7 @@ export const closeMessageBusConnection = async () => {
   await (await getConnection()).close();
   log(`RabbitMQ connection closed.`);
 
-  if (usingCloudAMQP && cloudAmqpInstanceId) {
+  if (useCloudAMQP && cloudAmqpInstanceId) {
     await deleteCloudAmqpInstance({ id: cloudAmqpInstanceId });
   }
 };

@@ -10,3 +10,15 @@ export const NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_API_KEY =
 export const NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_INSTANCE_LIFETIME =
   +(process.env.NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_INSTANCE_LIFETIME || '') ||
   1000 * 60 * 60;
+
+console.log(
+  'process.env.NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_API_KEY',
+  NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_API_KEY
+);
+
+export const isTestEnv = () => !NODE_ENV.includes('test');
+export const isUsingCloudAmqp = () =>
+  !!(
+    process.env.NODE_ENV !== 'production' &&
+    NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_API_KEY
+  );

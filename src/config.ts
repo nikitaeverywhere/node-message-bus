@@ -1,15 +1,21 @@
-import { ChannelWrapper } from 'amqp-connection-manager';
-import { ConfirmChannel } from 'amqplib';
 import { MessageBusConfig } from 'Types';
 import { error, log, setLoggerFunction } from 'Utils';
+import {
+  AmqpConnectionManagerOptions,
+  ChannelWrapper,
+} from 'amqp-connection-manager';
+import { ConfirmChannel } from 'amqplib';
 import { DEFAULT_CONFIG, DEFAULT_EXCHANGE_NAME } from './Const';
 
 // Config that was applied through the lifetime of the message bus.
-const appliedConfig: Required<Omit<MessageBusConfig, 'logger'>> = {
-  exchanges: [],
-  queues: [],
-  bindings: [],
-};
+const appliedConfig: Required<Omit<MessageBusConfig, 'logger' | 'amqpConfig'>> =
+  {
+    exchanges: [],
+    queues: [],
+    bindings: [],
+  };
+
+export let amqpConfig: AmqpConnectionManagerOptions | null = null;
 
 /**
  * Returns all applied message bus data through the lifetime of this application.
@@ -19,6 +25,9 @@ export const getMessageBusConfig = () => appliedConfig;
 export const configureMessageBusStatic = async (config: MessageBusConfig) => {
   if (typeof config.logger === 'function') {
     setLoggerFunction(config.logger);
+  }
+  if (config.amqpConfig) {
+    amqpConfig = config.amqpConfig;
   }
 };
 

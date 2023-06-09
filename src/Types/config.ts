@@ -1,3 +1,4 @@
+import { AmqpConnectionManagerOptions } from 'amqp-connection-manager';
 import { Options } from 'amqplib';
 import { LogType } from './logger';
 
@@ -27,4 +28,5 @@ export interface MessageBusConfig {
   exchanges?: ExchangeConfig[];
   queues?: QueueConfig[];
   bindings?: BindingConfig[];
+  amqpConfig?: AmqpConnectionManagerOptions;
 }

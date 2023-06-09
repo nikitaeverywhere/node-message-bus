@@ -10,6 +10,11 @@ describe('node-message-bus', () => {
         logs.push(msg);
         console[f](msg);
       },
+      amqpConfig: {
+        connectionOptions: {
+          timeout: 3000,
+        },
+      },
     });
 
     await until(() => !!logs.find((log) => log.includes('Failed to connect')));

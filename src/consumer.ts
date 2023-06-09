@@ -1,20 +1,23 @@
+import { IMessage, MessageBusConfig, QueueConfig } from 'Types';
+import { info, log, error as logError } from 'Utils';
 import { ChannelWrapper } from 'amqp-connection-manager';
 import {
   ConsumeMessage,
   ConsumeMessageFields,
   MessageProperties,
 } from 'amqplib';
-import { IMessage, QueueConfig } from 'Types';
-import { error as logError, info, log } from 'Utils';
-import { getChannel } from './channel';
-import { getMessageBusConfig } from './config';
 import { DEFAULT_EXCHANGE_NAME } from './Const';
+import { getChannel } from './channel';
+import { configureMessageBus, getMessageBusConfig } from './config';
 
 const EXP_BACKOFF_HEADER_NAME = 'x-backoff-sec';
 const EXP_BACKOFF_MULTIPLIER = 4;
 const MAX_EXP_BACKOFF = 1000 * 1024;
 
-interface HandlerExtraParams extends MessageProperties, ConsumeMessageFields {
+interface HandlerExtraParams
+  extends MessageProperties,
+    ConsumeMessageFields,
+    IMessage {
   failThisMessage: (error?: Error) => Promise<void>;
 }
 
@@ -90,13 +93,29 @@ const backoffRetryMessage = async <DataType = any>({
   await channel.ack(message);
 };
 
-export const consumeMessages = async <DataTypeOverrides extends IMessage>({
-  queueName,
-  handler,
-}: {
-  queueName: string;
-  handler: (arg: HandlerExtraParams & DataTypeOverrides) => any;
-}) => {
+export async function consumeMessages<DataTypeOverrides extends IMessage>(
+  queueName: string,
+  handler: (arg: HandlerExtraParams & DataTypeOverrides) => any
+): Promise<void>;
+export async function consumeMessages<DataTypeOverrides extends IMessage>(
+  config: MessageBusConfig,
+  handler: (arg: HandlerExtraParams & DataTypeOverrides) => any
+): Promise<void>;
+
+export async function consumeMessages<DataTypeOverrides extends IMessage>(
+  queueName: MessageBusConfig | string,
+  handler: (arg: HandlerExtraParams & DataTypeOverrides) => any
+) {
+  if (typeof queueName !== 'string') {
+    if (!queueName.queues || queueName.queues.length !== 1) {
+      throw new Error(
+        'You need to define exactly one queue in the passed config to consumeMessages()'
+      );
+    }
+    configureMessageBus(queueName);
+    queueName = queueName.queues[0].name;
+  }
+
   const channel = await getChannel();
   const queue = getMessageBusConfig().queues.find((q) => q.name === queueName);
   const consumerTag = `${
@@ -146,12 +165,11 @@ export const consumeMessages = async <DataTypeOverrides extends IMessage>({
         ...message.properties,
         ...message.fields,
         failThisMessage,
-        data,
+        key: message.fields.routingKey,
+        body: data,
       };
 
-      log(
-        `Consuming message from queue=${queueName}, routingKey=${message.fields.routingKey}`
-      );
+      log(`<- consuming [${message.fields.routingKey}]`);
       try {
         await handler(handlerParams as HandlerExtraParams & DataTypeOverrides);
 
@@ -166,8 +184,9 @@ export const consumeMessages = async <DataTypeOverrides extends IMessage>({
       consumerTag,
     }
   );
-  log(`Registered a new consumer for queue=${queueName}`);
-};
+
+  log(`✔ Listening messages from queue ${queueName}`);
+}
 
 export const messageBusStopAllConsumers = async () => {
   const channel = await getChannel();

@@ -7,7 +7,6 @@ import {
   NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_API_KEY,
   NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_INSTANCE_LIFETIME,
 } from 'Const';
-import fetch from 'node-fetch';
 import { error, log } from 'Utils';
 
 const authorizationHeader = `Basic ${Buffer.from(

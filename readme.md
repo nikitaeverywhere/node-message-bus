@@ -7,6 +7,10 @@
 Declarative AMQP (RabbitMQ / LavinMQ / ...) support for your NodeJS microservices. A convenient wrapper around [ampqlib](https://www.npmjs.com/package/amqplib)
 for RabbitMQ, bringing the most critical features to build with message bus pattern.
 
+## Requirements
+
+- NodeJS 18+ (for ` NODE_ENV=test``fetch ` support)
+
 ## Features
 
 - Declarative interface, simple in use.
@@ -60,8 +64,11 @@ NODE_MESSAGE_BUS_CONNECTION_URL=http://admin:admin@rabbitmq
 NODE_MESSAGE_BUS_DEFAULT_EXCHANGE_NAME=amq.topic
 NODE_MESSAGE_BUS_DEFAULT_EXCHANGE_TYPE=topic
 
-# Optional. When set to "test", the library switches to a "testing mode" and will try to
-# connect to your CloudAMQP account, if {NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_API_KEY} is present.
+# When either NODE_ENV is set to "test", or NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_API_KEY is set
+# with the condition that NODE_ENV is not "production", this library switches to a "testing mode"
+# and tries to connect to your CloudAMQP account to create a dynamic queue for testing.
+
+# Optional. Define that this is a test environment.
 NODE_ENV=test
 
 # Optional. An API key from https://customer.cloudamqp.com/ for testing, used to spin up dynamic
@@ -230,8 +237,8 @@ You can also publish messages to a single queue (which is not recommended under 
 import { publishMessageToQueue } from 'node-message-bus';
 
 await publishMessageToQueue({
-  routingKey: 'key-1',
-  data: 'Made in 🇺🇦',
+  queueName: 'queue-1',
+  body: 'Made in 🇺🇦',
 });
 ```
 
