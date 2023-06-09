@@ -1,5 +1,11 @@
 import { IMessage, MessageBusConfig, QueueConfig } from 'Types';
-import { info, log, error as logError } from 'Utils';
+import {
+  info,
+  log,
+  error as logError,
+  pushToLastConsumedMessages,
+  pushToLastRejectedMessages,
+} from 'Utils';
 import { ChannelWrapper } from 'amqp-connection-manager';
 import {
   ConsumeMessage,
@@ -25,13 +31,13 @@ const backoffRetryMessage = async <DataType = any>({
   message,
   queue,
   channel,
-  data,
+  body,
   error,
 }: {
   message: ConsumeMessage;
   queue: QueueConfig;
   channel: ChannelWrapper;
-  data: DataType;
+  body: DataType;
   error?: Error;
 }) => {
   const currentBackoffSeconds =
@@ -78,7 +84,7 @@ const backoffRetryMessage = async <DataType = any>({
   }
 
   try {
-    await channel.sendToQueue(backoffQueueName, data, {
+    await channel.sendToQueue(backoffQueueName, body, {
       headers: {
         ...message.properties.headers,
         [EXP_BACKOFF_HEADER_NAME]: nextBackoffSeconds,
@@ -138,12 +144,12 @@ export async function consumeMessages<DataTypeOverrides extends IMessage>(
         return;
       }
 
-      let data = message.content;
+      let body = message.content;
       try {
-        data = JSON.parse(message.content.toString());
+        body = JSON.parse(message.content.toString());
       } catch (e) {
         log(
-          `Unable to parse JSON from the message queue: ${data}. Returning original data.`
+          `Unable to parse JSON from the message queue: ${body}. Returning original data.`
         );
       }
 
@@ -157,7 +163,7 @@ export async function consumeMessages<DataTypeOverrides extends IMessage>(
           message,
           queue,
           channel,
-          data,
+          body,
           error: e,
         });
       };
@@ -166,7 +172,7 @@ export async function consumeMessages<DataTypeOverrides extends IMessage>(
         ...message.fields,
         failThisMessage,
         key: message.fields.routingKey,
-        body: data,
+        body,
       };
 
       log(`<- consuming [${message.fields.routingKey}]`);
@@ -175,9 +181,17 @@ export async function consumeMessages<DataTypeOverrides extends IMessage>(
 
         if (!messageBackoff) {
           channel.ack(message);
+          pushToLastConsumedMessages({
+            key: message.fields.routingKey,
+            body: body,
+          });
         }
       } catch (e: any) {
         await failThisMessage(e);
+        pushToLastRejectedMessages({
+          key: message.fields.routingKey,
+          body: body,
+        });
       }
     },
     {

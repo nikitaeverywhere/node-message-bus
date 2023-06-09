@@ -1,11 +1,15 @@
 import { expect } from 'chai';
 import {
+  DEFAULT_EXCHANGE_NAME,
+  IMessage,
+  clearLastMessages,
   closeMessageBus,
   configureMessageBus,
   consumeMessages,
-  DEFAULT_EXCHANGE_NAME,
   deleteQueue,
-  IMessage,
+  getLastConsumedMessages,
+  getLastPublishedMessages,
+  getLastRejectedMessages,
   initMessageBus,
   isMessageBusHealthy,
   messageBusStopAllConsumers,
@@ -392,6 +396,91 @@ describe('node-message-bus', () => {
         pipelineId: 'a',
         stepId: 'start',
       });
+    });
+  });
+
+  describe('testing helper functions', () => {
+    beforeEach(() => {
+      clearLastMessages();
+    });
+
+    it('populates last published messages queue', async () => {
+      await publishMessage({
+        key: 'automation.run',
+        body: {
+          pipelineId: 'a',
+          stepId: 'start',
+        },
+      });
+
+      expect(getLastPublishedMessages()).to.be.deep.equal([
+        {
+          key: 'automation.run',
+          body: {
+            pipelineId: 'a',
+            stepId: 'start',
+          },
+        },
+      ]);
+      expect(getLastConsumedMessages()).to.be.deep.equal([]);
+      expect(getLastRejectedMessages()).to.be.deep.equal([]);
+    });
+
+    it('populates last consumed messages queue', async () => {
+      const consumePromise = new Promise((r) =>
+        consumeMessages('test-queue-1', ({ body }) => r(body))
+      );
+      await publishMessage({
+        key: 'automation.run',
+        body: {
+          pipelineId: 'a',
+          stepId: 'start',
+        },
+      });
+      await consumePromise;
+
+      expect(getLastConsumedMessages()).to.be.deep.equal([
+        {
+          key: 'automation.run',
+          body: {
+            pipelineId: 'a',
+            stepId: 'start',
+          },
+        },
+      ]);
+      expect(getLastRejectedMessages()).to.be.deep.equal([]);
+    });
+
+    it('populates last rejected messages queue', async () => {
+      consumeMessages('test-queue-1', () => {
+        throw new Error('test - expected error');
+      });
+      await publishMessage({
+        key: 'automation.run',
+        body: {
+          pipelineId: 'a',
+          stepId: 'start',
+        },
+      });
+
+      await until(() => getLastRejectedMessages().length === 1);
+
+      expect(getLastConsumedMessages()).to.be.deep.equal([]);
+      expect(getLastRejectedMessages()).to.be.deep.equal([
+        {
+          key: 'automation.run',
+          body: {
+            pipelineId: 'a',
+            stepId: 'start',
+          },
+        },
+      ]);
+    });
+
+    it('indeed clears last messages', () => {
+      expect(getLastConsumedMessages()).to.have.length(0);
+      expect(getLastPublishedMessages()).to.have.length(0);
+      expect(getLastRejectedMessages()).to.have.length(0);
     });
   });
 });

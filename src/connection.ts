@@ -1,6 +1,7 @@
 import {
   NODE_ENV,
   NODE_MESSAGE_BUS_CONNECTION_URL,
+  isTestEnv,
   isUsingCloudAmqp,
 } from 'Const';
 import { error, getPrintableConnectionString, log } from 'Utils';
@@ -46,7 +47,12 @@ const initPromise = (async () => {
     }
   }
 
-  log(`Trying to connect to ${getPrintableConnectionString(connectionUrl)}...`);
+  log(
+    `${
+      isTestEnv() ? '[TEST ENVIRONMENT] ' : ''
+    }Connecting to ${getPrintableConnectionString(connectionUrl)}...`
+  );
+
   const connection = amqp.connect([connectionUrl], amqpConfig || undefined);
   connection.on('connect', () => {
     log(

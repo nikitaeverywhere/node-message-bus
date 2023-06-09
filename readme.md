@@ -15,7 +15,7 @@ for RabbitMQ, bringing the most critical features to build with message bus patt
 
 - Declarative interface, simple in use.
 - Built-in, no-external-dependencies support of exponential backoff.
-- Built-in tools for testing with dynamic instances provided by [CloudAMQP](https://www.cloudamqp.com/).
+- **No-dependencies, out-of-the-box** testing with dynamic instances provided by [CloudAMQP](https://www.cloudamqp.com/).
 - Simple yet flexible interfaces.
 - Pluggable logging library.
 
@@ -91,8 +91,8 @@ await initMessageBus();
 
 // Publishes to a default exchange specified via env vars.
 await publishMessage({
-  routingKey: 'worker.test',
-  data: 'Hello',
+  key: 'worker.test',
+  body: 'Hello',
 });
 ```
 
@@ -120,14 +120,27 @@ await configureMessageBus({
   bindings: [{ toQueue: 'test-queue-1', routingKey: 'worker.#' }],
 });
 
-await consumeMessages({
-  queueName: 'test-queue-1',
-  handler: async ({ data, routingKey }) => {
-    //
-    console.log(`Consumed message with routingKey=${routingKey}:`, data);
-    //
-  },
+await consumeMessages('test-queue-1', async ({ body, key }) => {
+  //
+  console.log(`Consumed message with routingKey=${key}:`, body);
+  //
 });
+```
+
+or
+
+```typescript
+await consumeMessages(
+  {
+    queues: ['test-queue-1'],
+    bindings: [{ toQueue: 'test-queue-1', routingKey: 'worker.#' }],
+  },
+  async ({ body, key }) => {
+    //
+    console.log(`Consumed message with routingKey=${key}:`, body);
+    //
+  }
+);
 ```
 
 ## Usage
@@ -187,11 +200,15 @@ await initMessageBus({
       routingKey: 'something',
     },
   ],
+
+  amqpConfig: {
+    /* Optional connection configs */
+  },
 });
 ```
 
 If you need to define any queues in runtime (which should only be used for testing), use `configureMessageBus`,
-which has the same API as `initMessageBus`. Note that there's no way to delete/reset created queues, which is by design.
+which has the same API as `initMessageBus`.
 
 ```typescript
 import { configureMessageBus } from 'node-message-bus';
@@ -217,14 +234,14 @@ onShutdown(closeMessageBus);
 
 ### Publish messages
 
-Don't forget to call `initMessageBus` for microservices which are publishing only.
+Mind to call `initMessageBus` for microservices which are publishing only.
 
 ```typescript
 import { publishMessage } from 'node-message-bus';
 
 await publishMessage({
-  routingKey: 'key-1',
-  data: {
+  key: 'key-1',
+  body: {
     info: 'This will be serialized to JSON,',
     or: "you can pass a primitive value to 'data'.",
   },
@@ -248,7 +265,9 @@ In testing scenarios, you can also access a few extra functions that will allow 
 import { startApp, stopApp, myAwesomeFunc } from 'build';
 import {
   getLastPublishedMessages,
-  resetLastPublishedMessages,
+  getLastRejectedMessages, // Rejected are those which triggered the backoff behavior
+  getLastConsumedMessages,
+  clearLastMessages,
 } from 'node-message-bus';
 
 before(async () => {
@@ -261,36 +280,38 @@ after(async () => {
 
 describe('Dummy test', () => {
   beforeEach(() => {
-    resetLastPublishedMessages();
+    clearLastMessages();
   });
 
   it('tests something', async () => {
     await myAwesomeFunc();
 
-    expect(getLastPublishedMessages).to.have.length(2);
+    expect(getLastPublishedMessages()).to.have.length(2);
+    expect(getLastConsumedMessages()).to.have.length(2);
+    expect(getLastRejectedMessages()).to.have.length(0);
   });
 });
 ```
 
 ### Consume messages
 
-Consumers are defined once, globally, per-microservice. There's no such thing as a "temporary" consumer.
+Consumers are typically defined once, globally, per-microservice.
 
 ```typescript
 import { consumeMessages } from 'node-message-bus';
 
-await consumeMessages({
-  queueName: 'test-queue-1',
-  handler: async ({ data, routingKey, failThisMessage }) => {
-    // From the previous example, data is an object { info: "...", or: "..." }.
+await consumeMessages(
+  'test-queue-1',
+  async ({ body, key, failThisMessage }) => {
+    // From the previous example, body is an object { info: "...", or: "..." }.
     // Any errors thrown in this code will be logged and will nack the message.
     await failThisMessage(
       new Error(
         '"soft fail" this message, which sends it to the backoff queue.'
       )
     );
-  },
-});
+  }
+);
 ```
 
 ### Using message types
@@ -304,40 +325,33 @@ import { publishMessage, consumeMessages, IMessage } from 'node-message-bus';
 /* Assuming @your-company/types is used across your NodeJS codebase. */
 import { Message } from '@your-company/types';
 
-// You can declare types with "extends",
-interface MessageWorkerTaskA extends IMessage {
-  routingKey: 'worker.task-a';
-  data: {
-    typed: string;
-  };
-}
+// You can declare a message type per routing key.
+interface MessageWorkerTaskA extends IMessage<'worker.task-a', { typed: string; }>;
 
 // or using a generic type,
-type MessageWorkerTaskB = IMessage<'worker.task-b', { myData: number }>;
+type MessageWorkerTaskB = IMessage<'worker.task-b', { myData: number; }>;
 
 type Message = MessageWorkerTaskA | MessageWorkerTaskB;
+
 /*********************************************************************/
 
 // Publish message with type.
 await publishMessage<MessageWorkerTaskA>({
-  routingKey: 'worker.task-a',
-  data: {
+  key: 'worker.task-a',
+  body: {
     typed: 'Hello, world!',
   },
 });
 
 // Consume message of type (here we use the union time as an example).
-await consumeMessages<Message>({
-  queueName: 'my-queue',
-  handler: async ({ routingKey, data, failThisMessage }) => {
-    if (routingKey === 'worker.task-a') {
-      // Handle task A, where {data} is of type MessageWorkerTaskA
-    } else if (routingKey === 'worker.task-b') {
-      // Handle task B, where {data} is of type MessageWorkerTaskB
-    } else {
-      await failThisMessage();
-    }
-  },
+await consumeMessages<Message>('my-queue', async ({ key, body, failThisMessage }) => {
+  if (key === 'worker.task-a') {
+    // Handle task A, where {body} is of type MessageWorkerTaskA['body']
+  } else if (key === 'worker.task-b') {
+    // Handle task B, where {body} is of type MessageWorkerTaskB['body']
+  } else {
+    await failThisMessage();
+  }
 });
 ```
 
@@ -345,7 +359,7 @@ await consumeMessages<Message>({
 
 #### deleteQueue
 
-`deleteQueue` allows to delete a queue.
+`deleteQueue()` allows to delete a queue.
 
 ```ts
 import { deleteQueue } from 'node-message-bus';
@@ -378,7 +392,7 @@ the following naming pattern:
 These queues have TTL and push the message back to the exchange with the same routing key and properties they had
 before. These queues are not auto-deleted.
 
-### Spot RabbitMQ instances for testing
+### Dynamic RabbitMQ instances for testing
 
 If you set the following environment variables,
 

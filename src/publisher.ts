@@ -1,7 +1,12 @@
 import { IMessage } from 'Types';
-import { error, log, safeJsonStringify } from 'Utils';
+import {
+  error,
+  log,
+  pushToLastPublishedMessages,
+  safeJsonStringify,
+} from 'Utils';
 import { Options } from 'amqplib';
-import { DEFAULT_CONFIG, DEFAULT_EXCHANGE_NAME, isTestEnv } from './Const';
+import { DEFAULT_CONFIG, DEFAULT_EXCHANGE_NAME } from './Const';
 import { getChannel } from './channel';
 
 interface Message extends IMessage {
@@ -13,19 +18,6 @@ interface DirectMessage extends Omit<IMessage, 'key'> {
   queueName: string;
   options?: Options.Publish;
 }
-
-const LAST_PUBLISHED_MESSAGES_BUFFER_SIZE = 50;
-
-let lastPublishedMessages: any[] = [];
-const pushToLastMessages = (m: any) => {
-  if (!isTestEnv()) {
-    return;
-  }
-  lastPublishedMessages.push(m);
-  if (lastPublishedMessages.length > LAST_PUBLISHED_MESSAGES_BUFFER_SIZE) {
-    lastPublishedMessages.splice(0, 1);
-  }
-};
 
 export const publishMessage = async <
   DataType extends { body: any; key: string } = Message
@@ -46,7 +38,7 @@ export const publishMessage = async <
       message.body, // channel.publish stringifies JSON by default.
       message.options
     );
-    pushToLastMessages(message);
+    pushToLastPublishedMessages(message);
   } catch (e) {
     error(
       `Unable to publish message to exchange "${exchangeName}" with routing routingKey "${
@@ -58,11 +50,6 @@ export const publishMessage = async <
     );
   }
 };
-
-/** Use for tests only */
-export const getLastPublishedMessages = () => lastPublishedMessages.slice();
-/** Use for tests only */
-export const resetLastPublishedMessages = () => (lastPublishedMessages = []);
 
 export const publishMessageToQueue = async ({
   body,

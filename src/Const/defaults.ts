@@ -1,5 +1,7 @@
 import { ExchangeType, MessageBusConfig } from 'Types';
 
+export const LAST_MESSAGES_BUFFER_SIZE = 50;
+
 export const EXCHANGE_TYPES: ExchangeType[] = [
   'direct',
   'topic',
