@@ -424,6 +424,11 @@ describe('node-message-bus', () => {
       ]);
       expect(getLastConsumedMessages()).to.be.deep.equal([]);
       expect(getLastRejectedMessages()).to.be.deep.equal([]);
+
+      const consumePromise = new Promise((r) =>
+        consumeMessages('test-queue-1', ({ body }) => r(body))
+      );
+      await consumePromise;
     });
 
     it('populates last consumed messages queue', async () => {
