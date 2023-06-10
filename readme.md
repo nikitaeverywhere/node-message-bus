@@ -9,7 +9,7 @@ for RabbitMQ, bringing the most critical features to build with message bus patt
 
 ## Requirements
 
-- NodeJS 18+ (for ` NODE_ENV=test``fetch ` support)
+- NodeJS 18+ (required for native `fetch` when ` NODE_ENV=test`)
 
 ## Features
 
