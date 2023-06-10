@@ -14,14 +14,13 @@ interface Message extends IMessage {
   options?: Options.Publish;
 }
 
-interface DirectMessage extends Omit<IMessage, 'key'> {
+interface DirectMessage<MessageType extends IMessage> {
   queueName: string;
   options?: Options.Publish;
+  body: MessageType['body'];
 }
 
-export const publishMessage = async <
-  DataType extends { body: any; key: string } = Message
->(
+export const publishMessage = async <DataType extends IMessage = Message>(
   message: Message & DataType
 ) => {
   const channel = await getChannel();
@@ -51,11 +50,13 @@ export const publishMessage = async <
   }
 };
 
-export const publishMessageToQueue = async ({
+export const publishMessageToQueue = async <
+  DataType extends IMessage = Message
+>({
   body,
   queueName,
   options,
-}: DirectMessage) => {
+}: DirectMessage<DataType>) => {
   const channel = await getChannel();
 
   try {
