@@ -124,7 +124,7 @@ export async function consumeMessages<Message extends IMessage>(
         'You need to define exactly one queue in the passed config to consumeMessages()'
       );
     }
-    configureMessageBus(queueName);
+    await configureMessageBus(queueName);
     queueName = queueName.queues[0].name;
   }
 
