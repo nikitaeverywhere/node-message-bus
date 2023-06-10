@@ -1,4 +1,10 @@
-import { IMessage, MessageBusConfig, QueueConfig } from 'Types';
+import {
+  IMessage,
+  MessageBusConfig,
+  MessageHandler,
+  MessageHandlerParams,
+  QueueConfig,
+} from 'Types';
 import {
   info,
   log,
@@ -99,18 +105,18 @@ const backoffRetryMessage = async <DataType = any>({
   await channel.ack(message);
 };
 
-export async function consumeMessages<DataTypeOverrides extends IMessage>(
+export async function consumeMessages<Message extends IMessage>(
   queueName: string,
-  handler: (arg: HandlerExtraParams & DataTypeOverrides) => any
+  handler: MessageHandler<Message>
 ): Promise<void>;
-export async function consumeMessages<DataTypeOverrides extends IMessage>(
+export async function consumeMessages<Message extends IMessage>(
   config: MessageBusConfig,
-  handler: (arg: HandlerExtraParams & DataTypeOverrides) => any
+  handler: MessageHandler<Message>
 ): Promise<void>;
 
-export async function consumeMessages<DataTypeOverrides extends IMessage>(
+export async function consumeMessages<Message extends IMessage>(
   queueName: MessageBusConfig | string,
-  handler: (arg: HandlerExtraParams & DataTypeOverrides) => any
+  handler: MessageHandler<Message>
 ) {
   if (typeof queueName !== 'string') {
     if (!queueName.queues || queueName.queues.length !== 1) {
@@ -167,7 +173,7 @@ export async function consumeMessages<DataTypeOverrides extends IMessage>(
           error: e,
         });
       };
-      const handlerParams: HandlerExtraParams & IMessage = {
+      const handlerParams: MessageHandlerParams<Message> = {
         ...message.properties,
         ...message.fields,
         failThisMessage,
@@ -177,7 +183,7 @@ export async function consumeMessages<DataTypeOverrides extends IMessage>(
 
       log(`<- consuming [${message.fields.routingKey}]`);
       try {
-        await handler(handlerParams as HandlerExtraParams & DataTypeOverrides);
+        await handler(handlerParams);
 
         if (!messageBackoff) {
           channel.ack(message);
