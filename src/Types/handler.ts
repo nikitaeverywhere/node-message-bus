@@ -11,4 +11,4 @@ export interface MessageHandlerParams<Message extends IMessage>
 
 export type MessageHandler<Message extends IMessage = IMessage> = (
   arg: MessageHandlerParams<Message>
-) => void;
+) => any;
