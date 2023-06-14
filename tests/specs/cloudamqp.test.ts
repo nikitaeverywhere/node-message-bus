@@ -433,7 +433,9 @@ describe('node-message-bus', () => {
 
     it('populates last consumed messages queue', async () => {
       const consumePromise = new Promise((r) =>
-        consumeMessages('test-queue-1', ({ body }) => r(body))
+        consumeMessages('test-queue-1', ({ body }) => {
+          setTimeout(() => r(body), 0);
+        })
       );
       await publishMessage({
         key: 'automation.run',

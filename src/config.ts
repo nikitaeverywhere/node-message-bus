@@ -15,6 +15,8 @@ const appliedConfig: Required<Omit<MessageBusConfig, 'logger' | 'amqpConfig'>> =
     bindings: [],
   };
 
+let defaultExchangeConfigured = false;
+
 export let amqpConfig: AmqpConnectionManagerOptions | null = null;
 
 /**
@@ -42,15 +44,16 @@ export const configureMessageBus = async (
     channel = await (await import('./channel')).getChannel();
   }
 
+  const promises: Array<Promise<any>> = [];
+
   for (const exchange of (config.exchanges || []).concat(
-    DEFAULT_CONFIG.exchanges || []
+    defaultExchangeConfigured ? [] : DEFAULT_CONFIG.exchanges || []
   )) {
+    defaultExchangeConfigured = true;
     try {
       log(`Asserting exchange "${exchange.name}" of type "${exchange.type}".`);
-      await channel.assertExchange(
-        exchange.name,
-        exchange.type,
-        exchange.options
+      promises.push(
+        channel.assertExchange(exchange.name, exchange.type, exchange.options)
       );
       appliedConfig.exchanges.push(exchange);
     } catch (e) {
@@ -66,7 +69,7 @@ export const configureMessageBus = async (
   )) {
     try {
       log(`Asserting queue "${queue.name}".`);
-      await channel.assertQueue(queue.name, queue.options);
+      promises.push(channel.assertQueue(queue.name, queue.options));
       appliedConfig.queues.push(queue);
     } catch (e) {
       const message = `Failed to assert queue "${
@@ -84,10 +87,8 @@ export const configureMessageBus = async (
       log(
         `Asserting the queue binding "${fromExchange}" -> "${binding.toQueue}" by key "${binding.routingKey}".`
       );
-      await channel.bindQueue(
-        binding.toQueue,
-        fromExchange,
-        binding.routingKey
+      promises.push(
+        channel.bindQueue(binding.toQueue, fromExchange, binding.routingKey)
       );
       appliedConfig.bindings.push(binding);
     } catch (e) {
@@ -96,4 +97,6 @@ export const configureMessageBus = async (
       throw new Error(message);
     }
   }
+
+  await Promise.all(promises);
 };
