@@ -24,12 +24,19 @@ const getInstancesList = async (): Promise<
     vpc_id: string;
   }>
 > => {
-  const res = await fetch(`${CLOUD_AMQP_URL_INSTANCES}`, {
-    headers: {
-      Authorization: authorizationHeader,
-    },
-  });
-  const result = (await res.json()) as any;
+  let result: any;
+  try {
+    const res = await fetch(`${CLOUD_AMQP_URL_INSTANCES}`, {
+      headers: {
+        Authorization: authorizationHeader,
+      },
+    });
+    result = await res.json();
+  } catch (e) {
+    error(
+      `Unable to fetch CloudAMQP instance list at ${CLOUD_AMQP_URL_INSTANCES}, ${e}`
+    );
+  }
 
   if (result.error) {
     error(`Unable to request a list of CloudAMQP instances: ${result.error}`);
@@ -55,7 +62,7 @@ export const deleteCloudAmqpInstance = async ({
     (await res.text()) as any;
     log(`CloudAMQP instance with ID=${id} is deleted!`);
   } catch (e: any) {
-    error(`Failed to delete instance with ID=${id}, ${e.stack || e}`);
+    error(`Failed to delete CloudAMQP instance with ID=${id}, ${e.stack || e}`);
   }
 };
 
@@ -82,12 +89,19 @@ export const getCloudAmqpRegions = async (): Promise<
     has_shared_plans: boolean;
   }>
 > => {
-  const res = await fetch(`${CLOUD_AMQP_URL_REGIONS}`, {
-    headers: {
-      Authorization: authorizationHeader,
-    },
-  });
-  const result = (await res.json()) as any;
+  let result: any;
+  try {
+    const res = await fetch(`${CLOUD_AMQP_URL_REGIONS}`, {
+      headers: {
+        Authorization: authorizationHeader,
+      },
+    });
+    result = await res.json();
+  } catch (e) {
+    error(
+      `Unable to fetch CloudAMQP regions at ${CLOUD_AMQP_URL_REGIONS}, ${e}`
+    );
+  }
 
   if (result.error) {
     error(`Unable to request a list of CloudAMQP regions: ${result.error}`);
@@ -122,15 +136,22 @@ export const getNewCloudAmqpInstance = async (): Promise<{
       newInstanceConfig
     )}`
   );
-  const res = await fetch(`${CLOUD_AMQP_URL_INSTANCES}`, {
-    method: 'POST',
-    headers: {
-      Authorization: authorizationHeader,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(newInstanceConfig),
-  });
-  const result = (await res.json()) as any;
+  let result: any;
+  try {
+    const res = await fetch(`${CLOUD_AMQP_URL_INSTANCES}`, {
+      method: 'POST',
+      headers: {
+        Authorization: authorizationHeader,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(newInstanceConfig),
+    });
+    result = await res.json();
+  } catch (e) {
+    error(
+      `Unable to fetch CloudAMQP instances at ${CLOUD_AMQP_URL_INSTANCES}, ${e}`
+    );
+  }
 
   if (result.error) {
     error(`Unable to create a new CloudAMQP instance: ${result.error}`);
