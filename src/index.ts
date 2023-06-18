@@ -8,7 +8,7 @@ export {
   getLastConsumedMessages,
   getLastPublishedMessages,
   getLastRejectedMessages,
-} from './Utils/testing';
+} from './Utils';
 export { closeMessageBus, initMessageBus } from './channel';
 export * from './config';
 export * from './consumer';

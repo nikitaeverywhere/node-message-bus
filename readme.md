@@ -322,44 +322,62 @@ You can do it purely with TypeScript:
 ```typescript
 import { publishMessage, consumeMessages, IMessage } from 'node-message-bus';
 
-/* Assuming @your-company/types is used across your NodeJS codebase. */
-import { Message } from '@your-company/types';
-
 // You can declare a message type per routing key.
-interface MessageWorkerTaskA extends IMessage<'worker.task-a', { typed: string; }>;
+interface MessageWorkerTaskA
+  extends IMessage<'worker.task-a', { typed: string }> {}
 
 // or using a generic type,
-type MessageWorkerTaskB = IMessage<'worker.task-b', { myData: number; }>;
+type MessageWorkerTaskB = IMessage<'worker.task-b', { myData: number }>;
 
-type Message = MessageWorkerTaskA | MessageWorkerTaskB;
+// You can create '@your-company/types' package and have every message type defined in a single place like this.
+export type Message = MessageWorkerTaskA | MessageWorkerTaskB;
+```
 
-/*********************************************************************/
+Then, use the following example to publish and consume typed messages. Both key and body will correspond only to
+a specific message.
 
-// Publish message with type.
-await publishMessage<MessageWorkerTaskA>({
+```typescript
+import { Message } from '@your-company/types';
+
+// Publish a message with type.
+await publishMessage<Message>({
   key: 'worker.task-a',
   body: {
     typed: 'Hello, world!',
   },
 });
 
-// Consume message of type (here we use the union time as an example).
-await consumeMessages<Message>('my-queue', async ({ key, body, failThisMessage }) => {
-  if (key === 'worker.task-a') {
-    // Handle task A, where {body} is of type MessageWorkerTaskA['body']
-  } else if (key === 'worker.task-b') {
-    // Handle task B, where {body} is of type MessageWorkerTaskB['body']
-  } else {
-    await failThisMessage();
+// Consume message of a type (here we use the union time as an example).
+await consumeMessages<Message>(
+  'my-queue',
+  async ({ key, body, failThisMessage }) => {
+    if (key === 'worker.task-a') {
+      // Handle task A, where {body} is of type MessageWorkerTaskA['body']
+    } else if (key === 'worker.task-b') {
+      // Handle task B, where {body} is of type MessageWorkerTaskB['body']
+    } else {
+      await failThisMessage();
+    }
   }
-});
+);
 ```
 
 ### Other functions
 
+#### purgeQueue / purgeAllQueues
+
+`purgeAllQueues()` is a convenient way to cleanup every defined (in this process) queue before each new test you run.
+
+```ts
+import { purgeQueue, purgeAllQueues } from 'node-message-bus';
+
+await purgeQueue('test-queue-1');
+await purgeAllQueues();
+```
+
 #### deleteQueue
 
-`deleteQueue()` allows to delete a queue.
+`deleteQueue()` lets you delete a defined queue by name.
 
 ```ts
 import { deleteQueue } from 'node-message-bus';

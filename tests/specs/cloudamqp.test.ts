@@ -15,6 +15,7 @@ import {
   messageBusStopAllConsumers,
   publishMessage,
   publishMessageToQueue,
+  purgeAllQueues,
   purgeQueue,
 } from '../../lib';
 import { until } from '../utils';
@@ -226,6 +227,25 @@ describe('node-message-bus', () => {
       });
 
       await new Promise((r) => setTimeout(r, 2000));
+
+      expect(consumedMessages).to.have.length(0);
+    });
+
+    it('purges all queues', async () => {
+      const queueName = 'test-queue-dead-letter-ttl';
+      const queueHandler = 'test-queue-dead-letter-handler';
+      const consumedMessages: any[] = [];
+      await purgeAllQueues();
+      await consumeMessages(queueHandler, ({ body }) => {
+        consumedMessages.push(body);
+      });
+      await publishMessageToQueue({
+        queueName,
+        body: { pipelineId: 'a', stepId: 'start' },
+      });
+      await purgeAllQueues();
+
+      await new Promise((r) => setTimeout(r, 1000));
 
       expect(consumedMessages).to.have.length(0);
     });
