@@ -75,6 +75,11 @@ NODE_ENV=test
 # RabbitMQ instances. Read below to understand how dynamic instances are created.
 NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_API_KEY=faf83b09-352f-add3-c2e3-c83212a32344
 NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_INSTANCE_LIFETIME=3600000
+
+# To speed up testing, provide a comma-separated list of preferred regions in which CloudAMQP
+# instance is going to be created. Defaults to us-west,us-central. In the list of all available
+# regions of CloudAMQP, a one with the closest partial string match will be picked.
+NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_PREFERRED_REGIONS=eu-central,europe-west
 ```
 
 ## Examples

@@ -6,6 +6,7 @@ import {
   CLOUD_AMQP_URL_REGIONS,
   NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_API_KEY,
   NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_INSTANCE_LIFETIME,
+  NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_PREFERRED_REGIONS,
 } from 'Const';
 import { error, log } from 'Utils';
 
@@ -117,7 +118,23 @@ export const getNewCloudAmqpInstance = async (): Promise<{
   apikey: string;
 } | null> => {
   // The potential improvement would be to get the CLOSEST region to where the test runs.
-  const instanceRegion = (await getCloudAmqpRegions())[0];
+  const instanceRegions = await getCloudAmqpRegions();
+  const instanceRegion =
+    instanceRegions.find(
+      (i) =>
+        !!NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_PREFERRED_REGIONS.find((r) =>
+          i.region.toLowerCase().includes(r.toLowerCase())
+        )
+    ) || instanceRegions[0];
+  const regionNames = instanceRegions.map((i) => i.region);
+
+  log(
+    `Preferred regions: ${NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_PREFERRED_REGIONS};\r\nAvailable regions: ${`${regionNames
+      .slice(0, 3)
+      .join(', ')}, ..., ${regionNames
+      .slice(0, 3)
+      .join(', ')}`}\r\nSelected region: ${instanceRegion.region}`
+  );
 
   const newInstanceConfig = {
     name: `${CLOUD_AMQP_INSTANCE_NAME_PREFIX}${
