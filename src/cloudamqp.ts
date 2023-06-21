@@ -9,6 +9,7 @@ import {
   NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_PREFERRED_REGIONS,
 } from 'Const';
 import { error, log } from 'Utils';
+import { setTimeout } from 'timers/promises';
 
 const authorizationHeader = `Basic ${Buffer.from(
   `:${NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_API_KEY || ''}`
@@ -26,17 +27,22 @@ const getInstancesList = async (): Promise<
   }>
 > => {
   let result: any;
-  try {
-    const res = await fetch(`${CLOUD_AMQP_URL_INSTANCES}`, {
-      headers: {
-        Authorization: authorizationHeader,
-      },
-    });
-    result = await res.json();
-  } catch (e) {
-    error(
-      `Unable to fetch CloudAMQP instance list at ${CLOUD_AMQP_URL_INSTANCES}, ${e}`
-    );
+
+  while (!result) {
+    try {
+      const res = await fetch(`${CLOUD_AMQP_URL_INSTANCES}`, {
+        headers: {
+          Authorization: authorizationHeader,
+        },
+      });
+      result = await res.json();
+    } catch (e) {
+      error(
+        `Unable to fetch CloudAMQP instance list at ${CLOUD_AMQP_URL_INSTANCES}, ${e}`
+      );
+      log('Retrying...');
+      await setTimeout(1000);
+    }
   }
 
   if (result.error) {
@@ -53,6 +59,7 @@ export const deleteCloudAmqpInstance = async ({
   id: number;
 }): Promise<void> => {
   log(`Deleting used CloudAMQP temp instance ID=${id}...`);
+
   try {
     const res = await fetch(`${CLOUD_AMQP_URL_INSTANCE(id.toString())}`, {
       method: 'DELETE',
@@ -91,17 +98,22 @@ export const getCloudAmqpRegions = async (): Promise<
   }>
 > => {
   let result: any;
-  try {
-    const res = await fetch(`${CLOUD_AMQP_URL_REGIONS}`, {
-      headers: {
-        Authorization: authorizationHeader,
-      },
-    });
-    result = await res.json();
-  } catch (e) {
-    error(
-      `Unable to fetch CloudAMQP regions at ${CLOUD_AMQP_URL_REGIONS}, ${e}`
-    );
+
+  while (!result) {
+    try {
+      const res = await fetch(`${CLOUD_AMQP_URL_REGIONS}`, {
+        headers: {
+          Authorization: authorizationHeader,
+        },
+      });
+      result = await res.json();
+    } catch (e) {
+      error(
+        `Unable to fetch CloudAMQP regions at ${CLOUD_AMQP_URL_REGIONS}, ${e}`
+      );
+      log('Retrying...');
+      await setTimeout(1000);
+    }
   }
 
   if (result.error) {
