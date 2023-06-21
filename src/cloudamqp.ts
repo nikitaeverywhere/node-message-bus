@@ -166,20 +166,24 @@ export const getNewCloudAmqpInstance = async (): Promise<{
     )}`
   );
   let result: any;
-  try {
-    const res = await fetch(`${CLOUD_AMQP_URL_INSTANCES}`, {
-      method: 'POST',
-      headers: {
-        Authorization: authorizationHeader,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(newInstanceConfig),
-    });
-    result = await res.json();
-  } catch (e) {
-    error(
-      `Unable to fetch CloudAMQP instances at ${CLOUD_AMQP_URL_INSTANCES}, ${e}`
-    );
+  while (!result) {
+    try {
+      const res = await fetch(`${CLOUD_AMQP_URL_INSTANCES}`, {
+        method: 'POST',
+        headers: {
+          Authorization: authorizationHeader,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newInstanceConfig),
+      });
+      result = await res.json();
+    } catch (e) {
+      error(
+        `Unable to fetch CloudAMQP instances at ${CLOUD_AMQP_URL_INSTANCES}, ${e}`
+      );
+      log('Retrying...');
+      await setTimeout(1000);
+    }
   }
 
   if (result.error) {
