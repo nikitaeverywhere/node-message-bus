@@ -24,6 +24,10 @@ export interface BindingConfig {
 }
 
 export interface MessageBusConfig {
+  /** Allows to use CloudAMQP temp instance for this run. */
+  useCloudAmqpTempInstance?: {
+    apiKey: string;
+  };
   logger?: (logType: LogType, message: string) => unknown;
   exchanges?: ExchangeConfig[];
   queues?: QueueConfig[];

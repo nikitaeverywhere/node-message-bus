@@ -4,16 +4,15 @@ import {
   CLOUD_AMQP_URL_INSTANCE,
   CLOUD_AMQP_URL_INSTANCES,
   CLOUD_AMQP_URL_REGIONS,
-  NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_API_KEY,
   NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_INSTANCE_LIFETIME,
   NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_PREFERRED_REGIONS,
 } from 'Const';
 import { error, log } from 'Utils';
 import { setTimeout } from 'timers/promises';
+import { getCloudAmqpKey } from './config';
 
-const authorizationHeader = `Basic ${Buffer.from(
-  `:${NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_API_KEY || ''}`
-).toString('base64')}`;
+const authorizationHeader = () =>
+  `Basic ${Buffer.from(`:${getCloudAmqpKey()}`).toString('base64')}`;
 
 const getInstancesList = async (): Promise<
   Array<{
@@ -32,7 +31,7 @@ const getInstancesList = async (): Promise<
     try {
       const res = await fetch(`${CLOUD_AMQP_URL_INSTANCES}`, {
         headers: {
-          Authorization: authorizationHeader,
+          Authorization: authorizationHeader(),
         },
       });
       result = await res.json();
@@ -64,7 +63,7 @@ export const deleteCloudAmqpInstance = async ({
     const res = await fetch(`${CLOUD_AMQP_URL_INSTANCE(id.toString())}`, {
       method: 'DELETE',
       headers: {
-        Authorization: authorizationHeader,
+        Authorization: authorizationHeader(),
       },
     });
     (await res.text()) as any;
@@ -103,7 +102,7 @@ export const getCloudAmqpRegions = async (): Promise<
     try {
       const res = await fetch(`${CLOUD_AMQP_URL_REGIONS}`, {
         headers: {
-          Authorization: authorizationHeader,
+          Authorization: authorizationHeader(),
         },
       });
       result = await res.json();
@@ -171,7 +170,7 @@ export const getNewCloudAmqpInstance = async (): Promise<{
       const res = await fetch(`${CLOUD_AMQP_URL_INSTANCES}`, {
         method: 'POST',
         headers: {
-          Authorization: authorizationHeader,
+          Authorization: authorizationHeader(),
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(newInstanceConfig),

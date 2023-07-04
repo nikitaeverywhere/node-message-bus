@@ -1,9 +1,4 @@
-import {
-  NODE_ENV,
-  NODE_MESSAGE_BUS_CONNECTION_URL,
-  isTestEnv,
-  isUsingCloudAmqp,
-} from 'Const';
+import { NODE_ENV, NODE_MESSAGE_BUS_CONNECTION_URL, isTestEnv } from 'Const';
 import { error, getPrintableConnectionString, log } from 'Utils';
 import amqp from 'amqp-connection-manager';
 import {
@@ -11,14 +6,24 @@ import {
   deleteCloudAmqpInstance,
   getNewCloudAmqpInstance,
 } from './cloudamqp';
-import { amqpConfig } from './config';
+import { amqpConfig, isUsingCloudAmqp } from './config';
 
 let connectionUrl = '';
 let cloudAmqpInstanceId = 0;
 
-const useCloudAMQP = isUsingCloudAmqp();
+let _resolveInitPromise = (m: ReturnType<typeof amqp.connect>) => {};
+let initPromise: Promise<ReturnType<typeof amqp.connect>> = new Promise(
+  (r) => (_resolveInitPromise = r)
+);
+let initialized = false;
+export const initConnection = async () => {
+  if (initialized) {
+    return;
+  }
+  initialized = true;
 
-const initPromise = (async () => {
+  const useCloudAMQP = isUsingCloudAmqp();
+
   if (useCloudAMQP) {
     await cleanupOldCloudAmqpInstances();
   }
@@ -76,8 +81,9 @@ const initPromise = (async () => {
     }
   });
 
+  _resolveInitPromise(connection);
   return connection;
-})();
+};
 
 export const getConnection = () => initPromise;
 export const closeMessageBusConnection = async () => {
@@ -89,7 +95,7 @@ export const closeMessageBusConnection = async () => {
   await (await getConnection()).close();
   log(`RabbitMQ connection closed.`);
 
-  if (useCloudAMQP && cloudAmqpInstanceId) {
+  if (isUsingCloudAmqp() && cloudAmqpInstanceId) {
     await deleteCloudAmqpInstance({ id: cloudAmqpInstanceId });
   }
 };

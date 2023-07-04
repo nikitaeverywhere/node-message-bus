@@ -16,8 +16,3 @@ export const NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_PREFERRED_REGIONS = (
 ).split(',');
 
 export const isTestEnv = () => !!NODE_ENV.includes('test');
-export const isUsingCloudAmqp = () =>
-  !!(
-    process.env.NODE_ENV !== 'production' &&
-    NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_API_KEY
-  );

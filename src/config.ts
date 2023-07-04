@@ -5,34 +5,68 @@ import {
   ChannelWrapper,
 } from 'amqp-connection-manager';
 import { ConfirmChannel } from 'amqplib';
-import { DEFAULT_CONFIG, DEFAULT_EXCHANGE_NAME } from './Const';
+import {
+  DEFAULT_CONFIG,
+  DEFAULT_EXCHANGE_NAME,
+  NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_API_KEY,
+} from './Const';
 
 // Config that was applied through the lifetime of the message bus.
-const appliedConfig: Required<Omit<MessageBusConfig, 'logger' | 'amqpConfig'>> =
-  {
-    exchanges: [],
-    queues: [],
-    bindings: [],
-  };
+const appliedConfig: Required<
+  Omit<MessageBusConfig, 'logger' | 'amqpConfig' | 'useCloudAmqpTempInstance'>
+> = {
+  exchanges: [],
+  queues: [],
+  bindings: [],
+};
 
+let useCloudAmqpTempInstance:
+  | MessageBusConfig['useCloudAmqpTempInstance']
+  | null = null;
 let defaultExchangeConfigured = false;
 
 export let amqpConfig: AmqpConnectionManagerOptions | null = null;
+
+export const isUsingCloudAmqp = () =>
+  !!useCloudAmqpTempInstance ||
+  !!(
+    process.env.NODE_ENV !== 'production' &&
+    NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_API_KEY
+  );
+
+export const getCloudAmqpKey = () =>
+  useCloudAmqpTempInstance?.apiKey ||
+  NODE_MESSAGE_BUS_TESTING_CLOUDAMQP_API_KEY ||
+  '';
 
 /**
  * Returns all applied message bus data through the lifetime of this application.
  */
 export const getMessageBusConfig = () => appliedConfig;
 
-export const configureMessageBusStatic = async (config: MessageBusConfig) => {
+/**
+ * Configure message bus before it is connected to AMQP.
+ */
+export const configureMessageBusStatic = async (
+  config: Pick<
+    MessageBusConfig,
+    'amqpConfig' | 'useCloudAmqpTempInstance' | 'logger'
+  >
+) => {
   if (typeof config.logger === 'function') {
     setLoggerFunction(config.logger);
+  }
+  if (config.useCloudAmqpTempInstance) {
+    useCloudAmqpTempInstance = config.useCloudAmqpTempInstance;
   }
   if (config.amqpConfig) {
     amqpConfig = config.amqpConfig;
   }
 };
 
+/**
+ * Waits until AMQP is initialized, then configures message bus.
+ */
 export const configureMessageBus = async (
   config: MessageBusConfig,
   channel?: ChannelWrapper | ConfirmChannel
