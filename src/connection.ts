@@ -60,13 +60,11 @@ export const initConnection = async () => {
 
   const connection = amqp.connect([connectionUrl], amqpConfig || undefined);
   connection.on('connect', () => {
-    log(
-      `Connected to RabbitMQ: ${getPrintableConnectionString(connectionUrl)}`
-    );
+    log(`Connected to AMQP: ${getPrintableConnectionString(connectionUrl)}`);
   });
   connection.on('disconnect', ({ err }) => {
     log(
-      `Disconnected from RabbitMQ: ${getPrintableConnectionString(
+      `Disconnected from AMQP: ${getPrintableConnectionString(
         connectionUrl
       )}, ${err}`
     );
@@ -77,7 +75,7 @@ export const initConnection = async () => {
         `Connection failed, likely because CloudAMQP instance is not yet up. Waiting... [${err}]`
       );
     } else {
-      log(`Failed to connect to RabbitMQ: ${err}; Retrying...`);
+      log(`Failed to connect to AMQP: ${err}; Retrying...`);
     }
   });
 
@@ -88,12 +86,12 @@ export const initConnection = async () => {
 export const getConnection = () => initPromise;
 export const closeMessageBusConnection = async () => {
   log(
-    `Closing the connection to RabbitMQ: ${getPrintableConnectionString(
+    `Closing the connection to AMQP: ${getPrintableConnectionString(
       connectionUrl
     )}`
   );
   await (await getConnection()).close();
-  log(`RabbitMQ connection closed.`);
+  log(`AMQP connection closed.`);
 
   if (isUsingCloudAmqp() && cloudAmqpInstanceId) {
     await deleteCloudAmqpInstance({ id: cloudAmqpInstanceId });

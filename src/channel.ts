@@ -36,14 +36,14 @@ const channelPromise = getConnection()
       json: true,
       setup: async (channel: ConfirmChannel) => {
         log(
-          `Waiting for RabbitMQ to be initialized by invoking initMessageBus() from 'node-message-bus'.`
+          `Waiting for AMQP to be initialized by invoking initMessageBus() from 'node-message-bus'.`
         );
         const config = await _initPromise;
 
         await configureMessageBus(config, channel);
 
         log(
-          `RabbitMQ initialization is complete with the following config: ${JSON.stringify(
+          `AMQP initialization is complete with the following config: ${JSON.stringify(
             config
           )}`
         );
