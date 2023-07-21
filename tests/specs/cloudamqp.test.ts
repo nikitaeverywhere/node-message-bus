@@ -420,8 +420,8 @@ describe('node-message-bus', () => {
   });
 
   describe('testing helper functions', () => {
-    beforeEach(() => {
-      clearLastMessages();
+    beforeEach(async () => {
+      await clearLastMessages();
     });
 
     it('populates last published messages queue', async () => {

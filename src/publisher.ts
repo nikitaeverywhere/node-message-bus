@@ -31,13 +31,14 @@ export const publishMessage = async <DataType extends IMessage = Message>(
 
   try {
     log(`-> publishing [${message.key}]`);
-    await channel.publish(
+    const promise = channel.publish(
       exchangeName,
       message.key,
       message.body, // channel.publish stringifies JSON by default.
       message.options
     );
-    pushToLastPublishedMessages(message);
+    pushToLastPublishedMessages(message, promise);
+    await promise;
   } catch (e) {
     error(
       `Unable to publish message to exchange "${exchangeName}" with routing routingKey "${

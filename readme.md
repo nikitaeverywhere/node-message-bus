@@ -284,8 +284,8 @@ after(async () => {
 });
 
 describe('Dummy test', () => {
-  beforeEach(() => {
-    clearLastMessages();
+  beforeEach(async () => {
+    await clearLastMessages();
   });
 
   it('tests something', async () => {
