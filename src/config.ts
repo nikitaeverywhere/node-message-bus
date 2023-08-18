@@ -75,7 +75,7 @@ export const configureMessageBus = async (
 
   if (!channel) {
     // To avoid creating circular dependency.
-    channel = await (await import('./channel')).getChannel();
+    channel = await (await import('./channel')).getDefaultChannel();
   }
 
   const promises: Array<Promise<any>> = [];

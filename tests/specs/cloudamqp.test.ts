@@ -326,6 +326,64 @@ describe('node-message-bus', () => {
     expect(consumedMessages[0].recipientUserId).to.be.equal(random);
   });
 
+  it('sequential consumption', async () => {
+    const consumedMessages: any[] = [];
+    await consumeMessages(
+      {
+        queues: [{ name: 'the-sequential' }],
+        bindings: [
+          {
+            toQueue: 'the-sequential',
+            routingKey: 'the.test.sequential',
+          },
+        ],
+        prefetchCount: 1,
+      },
+      async ({ body }) => {
+        const job = Math.random().toString(36).slice(2);
+        const start = Date.now();
+        console.log(`Job ${job} start at ${start}`);
+        await new Promise((r) => setTimeout(r, 500));
+        consumedMessages.push({ start, end: Date.now(), body });
+        console.log(
+          `Job ${job} end at ${
+            consumedMessages[consumedMessages.length - 1].end
+          }`
+        );
+      }
+    );
+
+    const publish = (x: number) =>
+      publishMessage({
+        key: 'the.test.sequential',
+        body: {
+          x,
+        },
+      });
+    await Promise.all([publish(1), publish(2), publish(3)]);
+
+    await new Promise((r) => {
+      const int = setInterval(() => {
+        if (consumedMessages.length === 3) {
+          clearInterval(int);
+          r(null);
+        }
+      }, 25);
+    });
+
+    expect(consumedMessages.map((m) => m.body.x)).to.deep.equal([1, 2, 3]);
+    consumedMessages
+      .map((m) => m.end - m.start)
+      .forEach((v) => expect(v).to.be.greaterThanOrEqual(500));
+    consumedMessages
+      .map((m, i, arr) => (i === 0 ? 0 : m.start - arr[i - 1].start))
+      .slice(1)
+      .forEach((v) => {
+        expect(v).to.be.greaterThanOrEqual(500);
+        expect(v).to.be.lessThanOrEqual(1000);
+      });
+  });
+
   describe('errors', () => {
     it('uses exponential backoff for failed deliveries', async () => {
       let handledTimes: number[] = [];

@@ -13,25 +13,14 @@ import {
   pushToLastRejectedMessages,
 } from 'Utils';
 import { ChannelWrapper } from 'amqp-connection-manager';
-import {
-  ConsumeMessage,
-  ConsumeMessageFields,
-  MessageProperties,
-} from 'amqplib';
+import { ConsumeMessage } from 'amqplib';
 import { DEFAULT_EXCHANGE_NAME } from './Const';
-import { getChannel } from './channel';
+import { getDefaultChannel } from './channel';
 import { configureMessageBus, getMessageBusConfig } from './config';
 
 const EXP_BACKOFF_HEADER_NAME = 'x-backoff-sec';
 const EXP_BACKOFF_MULTIPLIER = 4;
 const MAX_EXP_BACKOFF = 1000 * 1024;
-
-interface HandlerExtraParams
-  extends MessageProperties,
-    ConsumeMessageFields,
-    IMessage {
-  failThisMessage: (error?: Error) => Promise<void>;
-}
 
 const backoffRetryMessage = async <DataType = any>({
   message,
@@ -105,30 +94,42 @@ const backoffRetryMessage = async <DataType = any>({
   await channel.ack(message);
 };
 
+interface ConsumeMessagesExtraConfig {
+  /** Number of messages prefetched (and hence handled in parallel). */
+  prefetchCount?: number;
+}
+
+type ConsumeMessagesConfig = MessageBusConfig & ConsumeMessagesExtraConfig;
+
 export async function consumeMessages<Message extends IMessage>(
   queueName: string,
   handler: MessageHandler<Message>
 ): Promise<void>;
 export async function consumeMessages<Message extends IMessage>(
-  config: MessageBusConfig,
+  config: ConsumeMessagesConfig,
   handler: MessageHandler<Message>
 ): Promise<void>;
 
 export async function consumeMessages<Message extends IMessage>(
-  queueName: MessageBusConfig | string,
+  queueName: ConsumeMessagesConfig | string,
   handler: MessageHandler<Message>
 ) {
+  let prefetch: number | undefined;
   if (typeof queueName !== 'string') {
     if (!queueName.queues || queueName.queues.length !== 1) {
       throw new Error(
         'You need to define exactly one queue in the passed config to consumeMessages()'
       );
     }
-    await configureMessageBus(queueName);
+    const { prefetchCount, ...config } = queueName;
+    await configureMessageBus(config);
     queueName = queueName.queues[0].name;
+    if (prefetchCount) {
+      prefetch = prefetchCount;
+    }
   }
 
-  const channel = await getChannel();
+  const channel = await getDefaultChannel();
   const queue = getMessageBusConfig().queues.find((q) => q.name === queueName);
   const consumerTag = `${
     process.env.HOSTNAME || 'no.env.HOSTNAME'
@@ -202,6 +203,7 @@ export async function consumeMessages<Message extends IMessage>(
     },
     {
       consumerTag,
+      prefetch,
     }
   );
 
@@ -209,6 +211,6 @@ export async function consumeMessages<Message extends IMessage>(
 }
 
 export const messageBusStopAllConsumers = async () => {
-  const channel = await getChannel();
+  const channel = await getDefaultChannel();
   await channel.cancelAll();
 };

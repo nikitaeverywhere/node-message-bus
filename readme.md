@@ -319,6 +319,27 @@ await consumeMessages(
 );
 ```
 
+#### Sequential AMQP message consumption
+
+If you want a worker (instance!) to consume a maximum of one message at a time from the queue, you can limit it
+with a `prefetchCount` option for the specific queue (consumer):
+
+```typescript
+import { consumeMessages } from 'node-message-bus';
+
+await consumeMessages(
+  {
+    queues: ['test-queue-1'],
+    /* bindings: also specify bindings here if your queue wasn't bound before. */
+
+    prefetchCount: 1,
+  },
+  async ({ body }) => {
+    /* ... */
+  }
+);
+```
+
 ### Using message types
 
 It is recommended to use `node-message-bus` with typed messages, to ensure data integrity during compilation.

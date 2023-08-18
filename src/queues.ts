@@ -1,11 +1,11 @@
 import { Options } from 'amqplib';
-import { getChannel } from './channel';
+import { getDefaultChannel } from './channel';
 
 export const deleteQueue = async (
   queueName: string,
   options?: Options.DeleteQueue
 ) => {
-  const channel = await getChannel();
+  const channel = await getDefaultChannel();
   const result = await channel.deleteQueue(queueName, options);
 
   return {

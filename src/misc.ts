@@ -1,9 +1,9 @@
-import { getChannel } from './channel';
+import { getDefaultChannel } from './channel';
 import { getMessageBusConfig } from './config';
 
 /** Purges a single queue. */
 export const purgeQueue = async (opts: string | { queueName: string }) => {
-  const channel = await getChannel();
+  const channel = await getDefaultChannel();
 
   return await channel.purgeQueue(
     typeof opts === 'string' ? opts : opts.queueName

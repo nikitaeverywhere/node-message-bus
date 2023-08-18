@@ -7,7 +7,7 @@ import {
 } from 'Utils';
 import { Options } from 'amqplib';
 import { DEFAULT_CONFIG, DEFAULT_EXCHANGE_NAME } from './Const';
-import { getChannel } from './channel';
+import { getDefaultChannel } from './channel';
 
 interface Message extends IMessage {
   exchangeName?: string;
@@ -23,7 +23,7 @@ interface DirectMessage<MessageType extends IMessage> {
 export const publishMessage = async <DataType extends IMessage = Message>(
   message: Message & DataType
 ) => {
-  const channel = await getChannel();
+  const channel = await getDefaultChannel();
   const exchangeName =
     message.exchangeName ||
     DEFAULT_CONFIG.exchanges?.[0].name ||
@@ -58,7 +58,7 @@ export const publishMessageToQueue = async <
   queueName,
   options,
 }: DirectMessage<DataType>) => {
-  const channel = await getChannel();
+  const channel = await getDefaultChannel();
 
   try {
     log(`Publishing message to queue=${queueName}`);

@@ -57,7 +57,7 @@ const channelPromise = getConnection()
     throw e;
   });
 
-export const getChannel = async () => {
+export const getDefaultChannel = async () => {
   const channel = await channelPromise;
   await channel.waitForConnect();
   return channel;
