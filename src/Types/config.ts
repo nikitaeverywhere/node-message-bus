@@ -13,7 +13,7 @@ export interface ExchangeConfig {
 export interface QueueConfig {
   name: string;
   options?: Omit<Options.AssertQueue, 'deadLetterRoutingKey'> & {
-    deadLetterRoutingKey: string;
+    deadLetterRoutingKey?: string;
   };
 }
 
