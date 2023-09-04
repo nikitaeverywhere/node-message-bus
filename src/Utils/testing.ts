@@ -1,5 +1,5 @@
 import { LAST_MESSAGES_BUFFER_SIZE, isTestEnv } from 'Const';
-import { IMessage } from 'Types';
+import { IMessage, PublishMessageOptions } from 'Types';
 import { error } from './logger';
 
 interface LastMessagesFactory<T extends IMessage> {
@@ -10,7 +10,9 @@ interface LastMessagesFactory<T extends IMessage> {
   get: () => T[];
 }
 
-const lastMessagesFactory = <T extends IMessage>(): LastMessagesFactory<T> => {
+const lastMessagesFactory = <
+  T extends IMessage & PublishMessageOptions
+>(): LastMessagesFactory<T> => {
   const array: Array<{ message: T; promise?: Promise<any> }> = [];
   return {
     push: (m: T, promise?: Promise<any>) => {

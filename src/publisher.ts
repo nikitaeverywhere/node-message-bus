@@ -1,4 +1,4 @@
-import { IMessage } from 'Types';
+import { IMessage, PublishMessageOptions } from 'Types';
 import {
   error,
   log,
@@ -9,19 +9,16 @@ import { Options } from 'amqplib';
 import { DEFAULT_CONFIG, DEFAULT_EXCHANGE_NAME } from './Const';
 import { getDefaultChannel } from './channel';
 
-interface Message extends IMessage {
-  exchangeName?: string;
-  options?: Options.Publish;
-}
-
 interface DirectMessage<MessageType extends IMessage> {
   queueName: string;
   options?: Options.Publish;
   body: MessageType['body'];
 }
 
-export const publishMessage = async <DataType extends IMessage = Message>(
-  message: Message & DataType
+export const publishMessage = async <
+  MessageType extends IMessage = PublishMessageOptions
+>(
+  message: PublishMessageOptions & MessageType
 ) => {
   const channel = await getDefaultChannel();
   const exchangeName =
@@ -52,7 +49,7 @@ export const publishMessage = async <DataType extends IMessage = Message>(
 };
 
 export const publishMessageToQueue = async <
-  DataType extends IMessage = Message
+  DataType extends IMessage = PublishMessageOptions
 >({
   body,
   queueName,
