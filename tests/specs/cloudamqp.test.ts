@@ -45,6 +45,12 @@ describe('node-message-bus', () => {
         {
           name: 'test-queue-dead-letter-handler',
         },
+        {
+          name: 'test-queue-backoff-1',
+        },
+        {
+          name: 'test-queue-backoff-2',
+        },
       ],
       bindings: [
         {
@@ -62,6 +68,14 @@ describe('node-message-bus', () => {
         {
           toQueue: 'test-queue-dead-letter-handler',
           routingKey: 'automation.run',
+        },
+        {
+          toQueue: 'test-queue-backoff-1',
+          routingKey: 'backoff.*',
+        },
+        {
+          toQueue: 'test-queue-backoff-2',
+          routingKey: 'backoff.*',
         },
       ],
     });
@@ -474,6 +488,64 @@ describe('node-message-bus', () => {
         pipelineId: 'a',
         stepId: 'start',
       });
+    });
+
+    it('triggers only target queue handler when in backoff', async () => {
+      let handledTimes1: number[] = [];
+      let handledTimes2: number[] = [];
+      let handledData1: any;
+      let handledData2: any;
+
+      consumeMessages('test-queue-backoff-1', async ({ body, headers }) => {
+        console.log(
+          `Handling new message in queue 1: ${body}, headers: ${JSON.stringify(
+            headers
+          )}`
+        );
+        handledTimes1.push(Date.now());
+        if (handledTimes1.length === 3) {
+          handledData1 = body;
+        } else {
+          throw new Error('dummy error - expected in test');
+        }
+      });
+      consumeMessages('test-queue-backoff-2', async ({ body, headers }) => {
+        console.log(
+          `Handling new message in queue 2: ${body}, headers: ${JSON.stringify(
+            headers
+          )}`
+        );
+        handledTimes2.push(Date.now());
+        handledData2 = body;
+      });
+
+      await publishMessage({
+        key: 'backoff.test',
+        body: {
+          hello: 1,
+        },
+      });
+
+      // Wait for body.
+      await new Promise((resolve) => {
+        const int = setInterval(() => {
+          if (handledTimes1.length === 3) {
+            clearInterval(int);
+            resolve(1);
+          }
+        }, 50);
+      });
+
+      const d1 = handledTimes1[1] - handledTimes1[0];
+      const d2 = handledTimes1[2] - handledTimes1[1];
+      expect(d1).to.be.greaterThanOrEqual(1000);
+      expect(d1).to.be.lessThanOrEqual(3000);
+      expect(d2).to.be.greaterThanOrEqual(4000);
+      expect(d2).to.be.lessThanOrEqual(6000);
+      expect(handledData1).to.be.deep.equal({ hello: 1 });
+      expect(handledTimes1.length).to.be.equal(3);
+      expect(handledTimes2.length).to.be.equal(1);
+      expect(handledData2).to.be.deep.equal({ hello: 1 });
     });
   });
 

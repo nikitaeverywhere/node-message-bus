@@ -18,7 +18,10 @@ import { DEFAULT_EXCHANGE_NAME } from './Const';
 import { getDefaultChannel } from './channel';
 import { configureMessageBus, getMessageBusConfig } from './config';
 
-const EXP_BACKOFF_HEADER_NAME = 'x-backoff-sec';
+/* Marks the number of the delay seconds with which this message was sent to a backoff queue. */
+const HEADER_NAME_EXP_BACKOFF_SEC = 'x-backoff-sec';
+/* Marks backoff messages with this header to make sure the message is consumed only by the queue where it has failed. */
+const HEADER_NAME_TARGET_QUEUE = 'x-qn-target';
 const EXP_BACKOFF_MULTIPLIER = 4;
 const MAX_EXP_BACKOFF = 1000 * 1024;
 
@@ -36,7 +39,7 @@ const backoffRetryMessage = async <DataType = any>({
   error?: Error;
 }) => {
   const currentBackoffSeconds =
-    parseInt(message.properties.headers[EXP_BACKOFF_HEADER_NAME]) || 0;
+    parseInt(message.properties.headers[HEADER_NAME_EXP_BACKOFF_SEC]) || 0;
   const nextBackoffSeconds = Math.min(
     MAX_EXP_BACKOFF,
     currentBackoffSeconds
@@ -82,7 +85,8 @@ const backoffRetryMessage = async <DataType = any>({
     await channel.sendToQueue(backoffQueueName, body, {
       headers: {
         ...message.properties.headers,
-        [EXP_BACKOFF_HEADER_NAME]: nextBackoffSeconds,
+        [HEADER_NAME_EXP_BACKOFF_SEC]: nextBackoffSeconds,
+        [HEADER_NAME_TARGET_QUEUE]: queue.name,
       },
     });
   } catch (e) {
@@ -148,6 +152,17 @@ export async function consumeMessages<Message extends IMessage>(
     async (message) => {
       if (message === null) {
         info(`Consumer ${consumerTag} was canceled.`);
+        return;
+      }
+
+      if (
+        message.properties.headers[HEADER_NAME_TARGET_QUEUE] &&
+        message.properties.headers[HEADER_NAME_TARGET_QUEUE] !== queueName
+      ) {
+        log(
+          `Skipping message "${message.fields.routingKey}" in queue "${queueName}" because it is intended for queue "${message.properties.headers[HEADER_NAME_TARGET_QUEUE]}" due to backoff.`
+        );
+        channel.ack(message);
         return;
       }
 
