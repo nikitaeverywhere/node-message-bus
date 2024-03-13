@@ -39,7 +39,7 @@ const backoffRetryMessage = async <DataType = any>({
   error?: Error;
 }) => {
   const currentBackoffSeconds =
-    parseInt(message.properties.headers[HEADER_NAME_EXP_BACKOFF_SEC]) || 0;
+    parseInt(message.properties.headers?.[HEADER_NAME_EXP_BACKOFF_SEC]) || 0;
   const nextBackoffSeconds = Math.min(
     MAX_EXP_BACKOFF,
     currentBackoffSeconds
@@ -156,8 +156,8 @@ export async function consumeMessages<Message extends IMessage>(
       }
 
       if (
-        message.properties.headers[HEADER_NAME_TARGET_QUEUE] &&
-        message.properties.headers[HEADER_NAME_TARGET_QUEUE] !== queueName
+        message.properties.headers?.[HEADER_NAME_TARGET_QUEUE] &&
+        message.properties.headers?.[HEADER_NAME_TARGET_QUEUE] !== queueName
       ) {
         log(
           `Skipping message "${message.fields.routingKey}" in queue "${queueName}" because it is intended for queue "${message.properties.headers[HEADER_NAME_TARGET_QUEUE]}" due to backoff.`
